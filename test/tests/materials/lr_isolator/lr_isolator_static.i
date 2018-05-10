@@ -1,4 +1,5 @@
-# Test for linear spring in the axial direction
+# Test for lead rubber isolator
+# Axial direction
 
 [Mesh]
   type = GeneratedMesh
@@ -300,20 +301,20 @@
 
 [Executioner]
   type = Transient
-  solve_type = NEWTON
+  solve_type = PJFNK
   line_search = none
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-8
   start_time = 0.0
-  dt = 0.005
-  dtmin = 0.001
-  end_time = 1.0
+  dt = 0.05
+  dtmin = 0.01
+  num_steps = 2
   timestep_tolerance = 1e-6
 []
 
 [Kernels]
   [./spring_disp_x]
-    type = StressDivergenceSpring
+    type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
@@ -321,7 +322,7 @@
     variable = disp_x
   [../]
   [./spring_disp_y]
-    type = StressDivergenceSpring
+    type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
@@ -329,7 +330,7 @@
     variable = disp_y
   [../]
   [./spring_disp_z]
-    type = StressDivergenceSpring
+    type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
@@ -337,7 +338,7 @@
     variable = disp_z
   [../]
   [./spring_rot_x]
-    type = StressDivergenceSpring
+    type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
@@ -345,7 +346,7 @@
     variable = rot_x
   [../]
   [./spring_rot_y]
-    type = StressDivergenceSpring
+    type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
@@ -353,7 +354,7 @@
     variable = rot_y
   [../]
   [./spring_rot_z]
-    type = StressDivergenceSpring
+    type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
@@ -364,21 +365,27 @@
 
 [Materials]
   [./stiffness]
-    type = ComputeSpringElasticity
+    type = ComputeLRIsolatorElasticity
     block = 0
-    kx = 1.0
-    ky = 2.0
-    kz = 3.0
-    krx = 10.0
-    kry = 20.0
-    krz = 30.0
+    fy = 1.0
+    alpha = 1.0
+    G_rubber = 10.0
+    K_rubber = 12.0
+    D1 = 1
+    D2 = 5
+    ts = 0.15
+    tr = 0.15
+    n = 10
+    tc = 0.15
   [../]
   [./deformations]
-    type = ComputeSpringDeformation
-    block = '0'
+    type = ComputeIsolatorDeformation
+    block = 0
+    sd_ratio = 0.5
     y_orientation = '0.0 1.0 0.0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
+    velocities = 'vel_x vel_y vel_z'
   [../]
   [./density]
     type = GenericConstantMaterial
