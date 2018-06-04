@@ -75,6 +75,7 @@ ComputeIsolatorDeformation::ComputeIsolatorDeformation(const InputParameters & p
 void
 ComputeIsolatorDeformation::computeQpProperties()
 {
+  std::cout << "$$$$$$$$$$$Executing ComputeIsolatorDeformation\n";
 
   // Compute initial orientation and length of the isolator in global coordinate system
   // Fetch the two nodes of the link element
@@ -180,17 +181,21 @@ ComputeIsolatorDeformation::computeDeformation()
   // basic system.
   _basic_disp[_qp].reshape(6, 1);
   _basic_vel[_qp].reshape(6, 1);
-  std::cout << "deformation****QUADRATURE POINT IS: " << _qp << "*******************\n";
 
-  std::cout << "total_gl\n";
-  _total_gl[_qp].print();
+  _basic_disp[_qp] = _total_lb[_qp] * _total_gl[_qp] * global_disp;
+  _basic_vel[_qp] = _total_lb[_qp] * _total_gl[_qp] * global_vel;
 
-  std::cout << "total_lb\n";
-  _total_lb[_qp].print();
+    // std::cout << "total_gl\n";
+    // _total_gl[_qp].print();
 
-  std::cout << "basic_disp\n";
-  _basic_disp[_qp].print();
+  // std::cout << "total_lb\n";
+  // _total_lb[_qp].print();
+  // std::cout << "total_lb size:" << _total_lb[_qp].n() << "\t" << _total_lb[_qp].m() << std::endl;
+  // std::cout << "total_gl size:" << _total_gl[_qp].n() << "\t" << _total_gl[_qp].m() << std::endl;
 
-  _basic_disp[_qp] = _total_gl[_qp] * _total_lb[_qp] * global_disp;
-  _basic_vel[_qp] = _total_gl[_qp] * _total_lb[_qp] * global_vel;
+  // std::cout << "global_disp size:" << global_disp.n() << "\t" << global_disp.m() << std::endl;
+  // global_disp.print();
+
+  // std::cout << "basic_disp size:" << _basic_disp[_qp].n() << "\t" << _basic_disp[_qp].m() << std::endl;
+  // _basic_disp[_qp].print();
 }

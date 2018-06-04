@@ -72,6 +72,8 @@ StressDivergenceIsolator::computeResidual()
 
   re += _local_re;
 
+  // std::cout << "******RESIDUAL = \n" << re << "\n";
+
   if (_has_save_in)
   {
     Threads::spin_mutex::scoped_lock lock(Threads::spin_mtx);
@@ -83,6 +85,8 @@ StressDivergenceIsolator::computeResidual()
 void
 StressDivergenceIsolator::computeJacobian()
 {
+  std::cout << "$$$$$$$$$$$Executing ComputeJacobian\n";
+
   // Access Jacobian; size is n x n (n is number of nodes)
   DenseMatrix<Number> & ke = _assembly.jacobianBlock(_var.number(), _var.number());
   _local_ke.resize(ke.m(), ke.n());
@@ -99,6 +103,8 @@ StressDivergenceIsolator::computeJacobian()
     }
 
   ke += _local_ke;
+
+  // std::cout << "diag JACOBIAN *************** for component " << _component << "\n" << ke << "\n";
 
   if (_has_diag_save_in)
   {
@@ -117,6 +123,8 @@ void
 StressDivergenceIsolator::computeOffDiagJacobian(MooseVariableFEBase & jvar)
 // coupling one variable to another (disp x to disp y, etc)
 {
+  std::cout << "$$$$$$$$$$$Executing computeOffDiagJacobian\n";
+
   size_t jvar_num = jvar.number();
   if (jvar_num == _var.number())
   // jacobian calculation if jvar is the same as the current variable i.e.,
@@ -127,16 +135,22 @@ StressDivergenceIsolator::computeOffDiagJacobian(MooseVariableFEBase & jvar)
   // jacobian calculation for off-diagonal elements
   {
     unsigned int coupled_component = 0;
-    bool coupled = true;
+    bool coupled = false;
     // finding which variable jvar is
     for (unsigned int i = 0; i < _ndisp; ++i)
     {
       if (jvar_num == _disp_var[i])
-        coupled_component = i;
+        {
+          coupled_component = i;
+          coupled = true;
+          break;
+        }
       else if (jvar_num == _rot_var[i])
-        coupled_component = i + 3;
-      else
-        coupled = false;
+        {
+          coupled_component = i + 3;
+          coupled = true;
+          break;
+        }
     }
     // getting the jacobian from assembly
     DenseMatrix<Number> & ke = _assembly.jacobianBlock(_var.number(), jvar_num);
@@ -146,5 +160,7 @@ StressDivergenceIsolator::computeOffDiagJacobian(MooseVariableFEBase & jvar)
         for (unsigned int j = 0; j < _phi.size(); ++j)
           ke(i, j) += _Kg[0](i * 6 + _component, j * 6 + coupled_component);
     }
+    // std::cout << "off diag JACOBIAN *************** for components " << _component << ", " << coupled_component << "\n" << ke << "\n";
+
   }
 }

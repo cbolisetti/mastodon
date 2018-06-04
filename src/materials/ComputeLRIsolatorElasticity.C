@@ -157,9 +157,9 @@ ComputeLRIsolatorElasticity::initializeLRIsolator()
 
   // Initializing stiffness matrices
   // _qp = 0;
-  std::cout << "elasticity****QUADRATURE POINT IS: " << _qp << "*******************\n";
+  // std::cout << "elasticity****QUADRATURE POINT IS: " << _qp << "*******************\n";
   _Kb[_qp].reshape(6, 6);
-  _Kb[_qp].zero();
+  _Kb[_qp].identity();
   _Kb[_qp](0, 0) = _kv0;
   _Kb[_qp](1, 1) = _k0 + _ke;
   _Kb[_qp](2, 2) = _k0 + _ke;
@@ -175,19 +175,18 @@ ComputeLRIsolatorElasticity::initializeLRIsolator()
   _Fg[_qp] = _Fl[_qp]; // forces in global system
 
   // Making all stiffnesses in _Kb as ones
-  _Kb[_qp].identity();
-  _Kb[_qp](1, 2) = 1.0;
-  _Kb[_qp](2, 1) = 1.0;
   _Fb[_qp] = _Kb[_qp] * _basic_def[_qp];
-  std::cout << "**** Force vector basic*** = \n";
-  _Fb[_qp].print();
-  std::cout << "**** Stiffness matrix basic**** =\n";
-  _Kb[_qp].print();
+  // std::cout << "**** Force vector basic*** = \n";
+  // _Fb[_qp].print();
+  // std::cout << "**** Stiffness matrix basic**** =\n";
+  // _Kb[_qp].print();
 }
 
 void
 ComputeLRIsolatorElasticity::computeQpProperties()
 {
+  // std::cout << "$$$$$$$$$$$Executing ComputeLRIsolatorElasticity\n";
+
   initializeLRIsolator();
   // Compute axial forces and stiffness terms
   // computeAxial();
@@ -200,16 +199,13 @@ ComputeLRIsolatorElasticity::computeQpProperties()
 
   // Compute rotational stiffnesses
   // 3) get moment and stiffness in basic x-direction
-  // _Fb[_qp](3, 0) = _Kb[_qp](3,3) * _basic_def[_qp](3, 0);
-  // _Kb[_qp](3,3) = Kt;
+  // _Fb[_qp](3) = _Kb[_qp](3,3) * _basic_def[_qp](3);
 
   // 4) get moment and stiffness in basic y-direction
-  // _Fb[_qp](4, 0) = _Kb[_qp](4,4) * _basic_def[_qp](4, 0);
-  // _Kb[_qp](4,4) = Kr;
+  // _Fb[_qp](4) = _Kb[_qp](4,4) * _basic_def[_qp](4);
 
   // 5) get moment and stiffness in basic z-direction
-  // _Fb[_qp](5, 0) = _Kb[_qp](5, 5) * _basic_def[_qp](5, 0);
-  // _Kb[_qp](5, 5) = Kr;
+  // _Fb[_qp](5) = _Kb[_qp](5, 5) * _basic_def[_qp](5);
 
   // Finalize forces and stiffness matrix
   // and convert them into global co-ordinate system
@@ -222,12 +218,12 @@ ComputeLRIsolatorElasticity::computeAxial()
   // 1) get axial force and stiffness in basic x-direction
   // If buckling
 
-  if (_basic_def[_qp](0, 0) <= _ucrn)
+  if (_basic_def[_qp](0) <= _ucrn)
   {
     if (_buckling_load_variation)
     {
-      _Kb[_qp](0,0) = _kv / 1000.0;
-      _Fb[_qp](0, 0) = _Fcrmin + _Kb[_qp](0,0) * (_basic_def[_qp](0, 0) - _ucrn);
+      _Kb[_qp](0, 0) = _kv / 1000.0;
+      _Fb[_qp](0) = _Fcrmin + _Kb[_qp](0, 0) * (_basic_def[_qp](0) - _ucrn);
     }
     else
     {
@@ -445,8 +441,8 @@ void
 ComputeLRIsolatorElasticity::finalize()
 {
   // Real uh = sqrt(_basic_def[_qp](1, 0) * _basic_def[_qp](1, 0) + _basic_def[_qp](2, 0) * _basic_def[_qp](2, 0));
-
-  // vertical motion
+  //
+  // // vertical motion
   // if (_vertical_stiffness_variation)
   // {
   //   _kv = _kv0 * (1.0 / (1.0 + (3.0 / (_pi * _pi)) * (uh / _rg) * (uh / _rg)));
@@ -500,10 +496,10 @@ ComputeLRIsolatorElasticity::finalize()
   // addPDeltaEffects(); // add P-∆ effects to local stiffness
   _Kg[_qp] = _total_gl[_qp].transpose() * _Kl[_qp] * _total_gl[_qp];
 
-  std::cout << "**** Force vector global*** = \n";
-  _Fg[_qp].print();
-  std::cout << "**** Force vector local*** = \n";
-  _Fl[_qp].print();
-  std::cout << "**** Stiffness matrix global**** =\n";
-  _Kg[_qp].print();
+  // std::cout << "**** Force vector global*** = \n";
+  // _Fg[_qp].print();
+  // std::cout << "**** Force vector local*** = \n";
+  // _Fl[_qp].print();
+  // std::cout << "**** Stiffness matrix global**** =\n";
+  // _Kg[_qp].print();
 }
