@@ -45,7 +45,7 @@ validParams<ComputeLRIsolatorElasticity>()
   params.addParam<Real>("phi_m", 0.5, "Damage index.");
   params.addParam<Real>("ac", 1.0, "Strength degradation parameter.");
   // params.addRequiredParam<Real>("mass", "Bearing mass.");
-  params.addParam<Real>("_cd", 0.0, "Viscous damping parameter.");
+  params.addParam<Real>("cd", 0.0, "Viscous damping parameter.");
   params.set<MooseEnum>("constant_on") = "ELEMENT"; // _qp = 0
   return params;
 }
@@ -74,7 +74,7 @@ ComputeLRIsolatorElasticity::ComputeLRIsolatorElasticity(const InputParameters &
     _kc(getParam<Real>("kc")),
     _phi_m(getParam<Real>("phi_m")),
     _ac(getParam<Real>("ac")),
-    _cd(getParam<Real>("_cd")),
+    _cd(getParam<Real>("cd")),
     // _sD(getMaterialPropertyByName<Real>("sd_ratio")), // Shear distance ratio
     _sD(0.5),
     _basic_def(getMaterialPropertyByName<ColumnMajorMatrix>("deformations")),
@@ -111,13 +111,15 @@ ComputeLRIsolatorElasticity::ComputeLRIsolatorElasticity(const InputParameters &
   _rg = sqrt(I / _A); // Radius of gyration
 
   // Bearing shear behavior parameters
+  if (_alpha < 0.0 || _alpha >= 1.0)
+    mooseError("In ComputeLRIsolatorElasticity block, ", name(), ". Parameter, '_alpha' should be >= 0.0 and < 1.0.");
   _qYield0 = _fy * (1 - _alpha);
   _qYield = _qYield0; // This yield stress changes with time
   _ke = _Gr * _A / _Tr; // Stiffness of elastic component (due to rubber)
   _k0 = (1.0 / _alpha - 1.0) * _ke; // Initial stiffness of hysteretic component (due to lead)
 
   // Axial parameters: compression
-  Real Erot = Ec / 3.0; // Rotation modulus of bearing
+  // Real Erot = Ec / 3.0; // Rotation modulus of bearing
   Real As = _A * _h / _Tr; // Adjusted shear area of bearing
   Real Is = I * _h / _Tr; // Adjusted moment of intertia of bearing
   Real Pe = _pi * _pi * Er * Is / (_h * _h); // Euler buckling load of bearing
@@ -192,7 +194,7 @@ ComputeLRIsolatorElasticity::initializeLRIsolator()
 void
 ComputeLRIsolatorElasticity::computeQpProperties()
 {
-  std::cout << "$$$$$$$$$$$Executing ComputeLRIsolatorElasticity" << " _qp = " << _qp << std::endl;
+  // std::cout << "$$$$$$$$$$$Executing ComputeLRIsolatorElasticity" << " _qp = " << _qp << std::endl;
 
   initializeLRIsolator();
   // Compute axial forces and stiffness terms
@@ -211,7 +213,7 @@ ComputeLRIsolatorElasticity::computeQpProperties()
   // basic y direction
   _Fb[_qp](4) = _Kb[_qp](4,4) * _basic_def[_qp](4);
 
-  // basic _z direction
+  // basic z direction
   _Fb[_qp](5) = _Kb[_qp](5, 5) * _basic_def[_qp](5);
 
   // Finalize forces and stiffness matrix
@@ -346,6 +348,8 @@ ComputeLRIsolatorElasticity::computeShear()
       _dzdu(1,1) = (1.0/uy)*(1.0 - _z(1)*(_z(0)*tmp1*du1du2+_z(1)*tmp2));
 
       Real dt = _t - _tC;
+      if (dt == 0)
+        dt = _dt;
 
       // set shear force
       _Fb[_qp](1, 0) = _cd*_basic_vel[_qp](1) + _qYield*_z(0) + _ke*_basic_def[_qp](1, 0);
@@ -356,9 +360,16 @@ ComputeLRIsolatorElasticity::computeShear()
       _Kb[_qp](2,1) = _qYield*_dzdu(1,0);
       _Kb[_qp](2,2) = _cd/dt + _qYield*_dzdu(1,1) + _ke;
 
+      std::cout << "**** Kb after shear calculation is: \n";
+      // _Kb[_qp].print();
+      // _dzdu.print();
+      // _z.print();
+
+      // std::cout << uy << "\n" << tmp1 << "\n" << tmp2 << "\n" << du1du2 << "\n" << du2du1 << "\n";
+
       if (_Kb[_qp](1, 2) * _Kb[_qp](2, 1) - _Kb[_qp](1, 1) * _Kb[_qp](2, 2) == 0)
         mooseError("Error in block, ", name(), ". Jacobian for isolator is zero due to off diagonal shear elements. Please check again.\n");
-      std::cout << "$$$$$$$$$$$$$$$$$$$$$$$" << _Kb[_qp](1, 2) * _Kb[_qp](2, 1) - _Kb[_qp](1, 1) * _Kb[_qp](2, 2) << std::endl;
+      // std::cout << "$$$$$$$$$$$$$$$$$$$$$$$" << deter << std::endl;
   }
 
   /* if buckling
@@ -477,7 +488,7 @@ ComputeLRIsolatorElasticity::finalize()
     //}
   }
 
-  // lead core heating
+  // update lead core heating parameters
   _TLC = _TL_trial;
   _tC = _t;
   if (_strength_degradation) {

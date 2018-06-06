@@ -75,7 +75,7 @@ ComputeIsolatorDeformation::ComputeIsolatorDeformation(const InputParameters & p
 void
 ComputeIsolatorDeformation::computeQpProperties()
 {
-  std::cout << "$$$$$$$$$$$Executing ComputeIsolatorDeformation" << " _qp = " << _qp << std::endl;
+  // std::cout << "$$$$$$$$$$$Executing ComputeIsolatorDeformation" << " _qp = " << _qp << std::endl;
 
   // Compute initial orientation and length of the isolator in global coordinate system
   // Fetch the two nodes of the link element

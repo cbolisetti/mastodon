@@ -218,46 +218,55 @@
     boundary = left
     value = 0.0
   [../]
+  [./disp_x_2]
+    type = PresetDisplacement
+    boundary = 'right'
+    function = 'disp_x_2'
+    variable = 'disp_x'
+    beta = 0.25
+    acceleration = 'accel_x'
+    velocity = 'vel_x'
+  [../]
 []
 
-[NodalKernels]
-  [./force_x]
-    type = UserForcingFunctionNodalKernel
-    variable = disp_x
-    boundary = right
-    function = force_x
-  [../]
-  [./force_y]
-    type = UserForcingFunctionNodalKernel
-    variable = disp_y
-    boundary = right
-    function = force_y
-  [../]
-  [./force_z]
-    type = UserForcingFunctionNodalKernel
-    variable = disp_z
-    boundary = right
-    function = force_z
-  [../]
-  [./moment_x]
-    type = UserForcingFunctionNodalKernel
-    variable = rot_x
-    boundary = right
-    function = moment_x
-  [../]
-  [./moment_y]
-    type = UserForcingFunctionNodalKernel
-    variable = rot_y
-    boundary = right
-    function = moment_y
-  [../]
-  [./moment_z]
-    type = UserForcingFunctionNodalKernel
-    variable = rot_z
-    boundary = right
-    function = moment_z
-  [../]
-[]
+# [NodalKernels]
+#   [./force_x]
+#     type = UserForcingFunctionNodalKernel
+#     variable = disp_x
+#     boundary = right
+#     function = force_x
+#   [../]
+#   [./force_y]
+#     type = UserForcingFunctionNodalKernel
+#     variable = disp_y
+#     boundary = right
+#     function = force_y
+#   [../]
+#   [./force_z]
+#     type = UserForcingFunctionNodalKernel
+#     variable = disp_z
+#     boundary = right
+#     function = force_z
+#   [../]
+#   [./moment_x]
+#     type = UserForcingFunctionNodalKernel
+#     variable = rot_x
+#     boundary = right
+#     function = moment_x
+#   [../]
+#   [./moment_y]
+#     type = UserForcingFunctionNodalKernel
+#     variable = rot_y
+#     boundary = right
+#     function = moment_y
+#   [../]
+#   [./moment_z]
+#     type = UserForcingFunctionNodalKernel
+#     variable = rot_z
+#     boundary = right
+#     function = moment_z
+#   [../]
+# []
 
 [Functions]
   [./force_x]
@@ -290,6 +299,11 @@
     x = '0.0 1.0' # time
     y = '0.0 30.0'  # moment
   [../]
+  [./disp_x_2]
+    type = PiecewiseLinear
+    data_file = disp_axial.csv
+    format = 'columns'
+  [../]
 []
 
 [Preconditioning]
@@ -306,7 +320,7 @@
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-8
   start_time = 0.0
-  end_time = 1
+  end_time = 10
   dt = 0.05
   dtmin = 0.01
   # num_steps = 2
@@ -377,16 +391,28 @@
   [./elasticity]
     type = ComputeLRIsolatorElasticity
     block = 0
-    fy = 1.0
-    alpha = 1.0
-    G_rubber = 10.0
-    K_rubber = 12.0
-    D1 = 1
-    D2 = 5
-    ts = 0.15
-    tr = 0.15
-    n = 10
-    tc = 0.15
+    fy = 207160
+    alpha = 0.03812
+    G_rubber = 8.7e6
+    K_rubber = 2e9
+    D1 = 0.1397
+    D2 = 0.508
+    ts = 0.00476
+    tr = 0.009525
+    n = 16
+    tc = 0.0127
+    kc = 20
+    phi_m = 0.75
+    ac = 1
+    cd = 128000
+    k_steel = 50
+    rho_lead = 11200
+    c_lead = 130
+    cavitation = true
+    horizontal_stiffness_variation = true
+    vertical_stiffness_variation = true
+    strength_degradation = true
+    buckling_load_variation = true
   [../]
   # [./density]
   #   type = GenericConstantMaterial

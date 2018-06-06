@@ -85,7 +85,7 @@ StressDivergenceIsolator::computeResidual()
 void
 StressDivergenceIsolator::computeJacobian()
 {
-  std::cout << "$$$$$$$$$$$Executing ComputeJacobian\n";
+  // std::cout << "$$$$$$$$$$$Executing ComputeJacobian\n";
 
   // Access Jacobian; size is n x n (n is number of nodes)
   DenseMatrix<Number> & ke = _assembly.jacobianBlock(_var.number(), _var.number());
@@ -123,7 +123,7 @@ void
 StressDivergenceIsolator::computeOffDiagJacobian(MooseVariableFEBase & jvar)
 // coupling one variable to another (disp x to disp y, etc)
 {
-  std::cout << "$$$$$$$$$$$Executing computeOffDiagJacobian\n";
+  // std::cout << "$$$$$$$$$$$Executing computeOffDiagJacobian\n";
 
   size_t jvar_num = jvar.number();
   if (jvar_num == _var.number())
