@@ -6,7 +6,7 @@
 #include "Assembly.h"
 #include "NonlinearSystem.h"
 #include "MooseVariable.h"
-#include "RankTwoTensor.h"
+#include "MathUtils.h"
 
 // libmesh includes
 #include "libmesh/quadrature.h"
@@ -45,7 +45,7 @@ validParams<ComputeLRIsolatorElasticity>()
   params.addParam<Real>("phi_m", 0.5, "Damage index.");
   params.addParam<Real>("ac", 1.0, "Strength degradation parameter.");
   // params.addRequiredParam<Real>("mass", "Bearing mass.");
-  params.addParam<Real>("cd", 0.0, "Viscous damping parameter.");
+  params.addParam<Real>("_cd", 0.0, "Viscous damping parameter.");
   params.set<MooseEnum>("constant_on") = "ELEMENT"; // _qp = 0
   return params;
 }
@@ -74,7 +74,7 @@ ComputeLRIsolatorElasticity::ComputeLRIsolatorElasticity(const InputParameters &
     _kc(getParam<Real>("kc")),
     _phi_m(getParam<Real>("phi_m")),
     _ac(getParam<Real>("ac")),
-    _cd(getParam<Real>("cd")),
+    _cd(getParam<Real>("_cd")),
     // _sD(getMaterialPropertyByName<Real>("sd_ratio")), // Shear distance ratio
     _sD(0.5),
     _basic_def(getMaterialPropertyByName<ColumnMajorMatrix>("deformations")),
@@ -90,7 +90,7 @@ ComputeLRIsolatorElasticity::ComputeLRIsolatorElasticity(const InputParameters &
     _length(getMaterialPropertyByName<Real>("initial_isolator_length")),
     _pi(libMesh::pi)
     // _TL_trial(0.0),
-    // _TL_commit(0.0)
+    // _TLC(0.0)
 {
   // Bearing material and geometric parameters
   _A = (_pi / 4.0) * ((_d2 + _tc) * (_d2 + _tc) - _d1 * _d1); // Bonded rubber area of bearing
@@ -142,7 +142,14 @@ ComputeLRIsolatorElasticity::ComputeLRIsolatorElasticity(const InputParameters &
   // } else {
   //     kc = _Kl;                                            // cavitation parameter
   // }
-
+  _z.reshape(2, 1);
+  _z.zero();
+  _zC.reshape(2, 1);
+  _zC.zero();
+  _dzdu.reshape(2, 2);
+  _dzdu.zero();
+  _ubC.zero();
+  _tC = _t;
 
 }
 
@@ -185,27 +192,27 @@ ComputeLRIsolatorElasticity::initializeLRIsolator()
 void
 ComputeLRIsolatorElasticity::computeQpProperties()
 {
-  // std::cout << "$$$$$$$$$$$Executing ComputeLRIsolatorElasticity\n";
+  std::cout << "$$$$$$$$$$$Executing ComputeLRIsolatorElasticity" << " _qp = " << _qp << std::endl;
 
   initializeLRIsolator();
   // Compute axial forces and stiffness terms
-  // computeAxial();
+  computeAxial();
 
   // Computing shear forces and stiffness terms
-  // computeShear();
+  computeShear();
 
   // Add P-∆ effects
-  // addPDeltaEffects();
+  addPDeltaEffects();
 
   // Compute rotational stiffnesses
-  // 3) get moment and stiffness in basic x-direction
-  // _Fb[_qp](3) = _Kb[_qp](3,3) * _basic_def[_qp](3);
+  // basic x direction
+  _Fb[_qp](3) = _Kb[_qp](3,3) * _basic_def[_qp](3);
 
-  // 4) get moment and stiffness in basic y-direction
-  // _Fb[_qp](4) = _Kb[_qp](4,4) * _basic_def[_qp](4);
+  // basic y direction
+  _Fb[_qp](4) = _Kb[_qp](4,4) * _basic_def[_qp](4);
 
-  // 5) get moment and stiffness in basic z-direction
-  // _Fb[_qp](5) = _Kb[_qp](5, 5) * _basic_def[_qp](5);
+  // basic _z direction
+  _Fb[_qp](5) = _Kb[_qp](5, 5) * _basic_def[_qp](5);
 
   // Finalize forces and stiffness matrix
   // and convert them into global co-ordinate system
@@ -215,9 +222,8 @@ ComputeLRIsolatorElasticity::computeQpProperties()
 void
 ComputeLRIsolatorElasticity::computeAxial()
 {
-  // 1) get axial force and stiffness in basic x-direction
+  // Calculating force and stiffness in basic x-direction
   // If buckling
-
   if (_basic_def[_qp](0) <= _ucrn)
   {
     if (_buckling_load_variation)
@@ -265,111 +271,102 @@ ComputeLRIsolatorElasticity::computeAxial()
   }
 }
 
-// void
-// ComputeLRIsolatorElasticity::computeShear()
-// {
-//   // get the current temperature of the lead core
-//   Real vel = sqrt(_basic_vel[_qp](1) * _basic_vel[_qp](1) + _basic_vel[_qp](2) * _basic_vel[_qp](2));
-//   _TL_trial = getCurrentTemp(_qYield, _TL_commit, vel);
-//
-//   //2) calculate shear forces and stiffnesses in basic y- and z-direction
-//   // get displacement increments (trial-commited)
-//   Vector delta_ub = ub - ubC;
-//   if (sqrt(pow(delta_ub(1),2)+pow(delta_ub(2),2)) > 0.0)
-//   {
-//
-//       // get yield displacement
-//       Real uy = qYield/k0;
-//
-//       // calculate hysteretic evolution parameter z using Newton-Raphson
-//       unsigned int iter = 0;
-//       unsigned int maxIter = 1000;
-//       Real tol = 1E-6;
-//       Real beta = 0.1; // note here beta and gamma are as per Nagarajaih(1991), which is opposite to Park et al.(1986)
-//       Real gamma = 0.9;
-//       Real zNrm, tmp1, tmp2, tmp3;
-//       Vector f(2), delta_z(2);
-//       Matrix Df(2,2);
-//       do
-//       {
-//           zNrm = z.norm();
-//           if (zNrm == 0.0)  // check because of negative exponents
-//               zNrm = DBL_EPSILON;
-//           tmp1 = beta + gamma*sgn(z(0)*delta_ub(1));
-//           tmp2 = beta + gamma*sgn(z(1)*delta_ub(2));
-//           tmp3 = z(0)*delta_ub(1)*tmp1 + z(1)*delta_ub(2)*tmp2;
-//
-//           // function and derivative
-//           f(0) = z(0) - zC(0) - 1.0/uy*(delta_ub(1) - z(0)*tmp3);
-//           f(1) = z(1) - zC(1) - 1.0/uy*(delta_ub(2) - z(1)*tmp3);
-//
-//           Df(0,0) = 1.0 + (1.0/uy)*(2*z(0)*delta_ub(1)*tmp1+z(1)*delta_ub(2)*tmp2);
-//           Df(1,0) = (tmp1/uy)*z(1)*delta_ub(1);
-//           Df(0,1) = (tmp2/uy)*z(0)*delta_ub(2);
-//           Df(1,1) = 1.0 + (1.0/uy)*(z(0)*delta_ub(1)*tmp1+2*z(1)*delta_ub(2)*tmp2);
-//
-//           // issue warning if diagonal of derivative Df is zero
-//           if ((fabs(Df(0,0)) <= DBL_EPSILON) || (fabs(Df(1,1)) <= DBL_EPSILON))
-//           {
-//               opserr << "WARNING: LeadRubberX::update() - "
-//                   << "zero Jacobian in Newton-Raphson scheme for hysteretic "
-//                   << "evolution parameter z.\n";
-//               return -1;
-//           }
-//
-//           // advance one step
-//           // delta_z = f/Df; either write a function to do matrix devision or use the solution below
-//           delta_z(0) = (f(0)*Df(1,1)-f(1)*Df(0,1))/(Df(0,0)*Df(1,1)-Df(0,1)*Df(1,0));
-//           delta_z(1) = (f(0)*Df(1,0)-f(1)*Df(0,0))/(Df(0,1)*Df(1,0)-Df(0,0)*Df(1,1));
-//           z -= delta_z;
-//           iter++;
-//       }
-//       while ((delta_z.Norm() >= tol) && (iter < maxIter));
-//
-//       // issue warning if Newton-Raphson scheme did not converge
-//       if (iter >= maxIter)
-//       {
-//           opserr << "WARNING: LeadRubberX::update() - "
-//               << "did not find the hysteretic evolution parameters z after "
-//               << iter << " iterations and norm: " << delta_z.Norm() << endln;
-//           return -2;
-//       }
-//
-//       // get derivative of hysteretic evolution parameter
-//       Real du1du2 = delta_ub(1)/delta_ub(2);
-//       Real du2du1 = delta_ub(2)/delta_ub(1);
-//       if (delta_ub(1)*delta_ub(2) == 0)
-//       {
-//           du1du2 = 0.0;
-//           du2du1 = 0.0;
-//       }
-//
-//       dzdu(0,0) = (1.0/uy)*(1.0 - z(0)*(z(0)*tmp1+z(1)*tmp2*du2du1));
-//       dzdu(0,1) = (1.0/uy)*(du1du2-z(0)*(z(0)*tmp1*du1du2+z(1)*tmp2));
-//       dzdu(1,0) = (1.0/uy)*(du2du1-z(1)*(z(0)*tmp1+z(1)*tmp2*du2du1));
-//       dzdu(1,1) = (1.0/uy)*(1.0 - z(1)*(z(0)*tmp1*du1du2+z(1)*tmp2));
-//
-//       tCurrent = (this->getDomain())->getCurrentTime();
-//       Real dt = tCurrent - tCommit;
-//
-//       // set shear force
-//       _Fb[_qp](1, 0) = cd*_basic_vel[_qp](1) + qYield*z(0) + ke*_basic_def[_qp](1, 0);
-//       _Fb[_qp](2, 0) = cd*_basic_vel[_qp](2) + qYield*z(1) + ke*_basic_def[_qp](2, 0);
-//       // set tangent stiffness
-//       _Kb[_qp](1,1) = cd/dt + qYield*dzdu(0,0) + ke;
-//       _Kb[_qp](1,2) = qYield*dzdu(0,1);
-//       _Kb[_qp](2,1) = qYield*dzdu(1,0);
-//       _Kb[_qp](2,2) = cd/dt + qYield*dzdu(1,1) + ke;
-//   }
-//
-//   /* if buckling
-//   if (tag==1) {
-//       tag = 0;
-//       return -1;  // return any negative integer
-//   }*/
-//
-//   return 0;
-// }
+void
+ComputeLRIsolatorElasticity::computeShear()
+{
+  // current temperature of the lead core
+  Real vel = sqrt(_basic_vel[_qp](1) * _basic_vel[_qp](1) + _basic_vel[_qp](2) * _basic_vel[_qp](2));
+  _TL_trial = calculateCurrentTemperature(_qYield, _TLC, vel);
+
+  // calculating shear forces and stiffnesses in basic y and z directions
+  // get displacement increments (trial-commited)
+  ColumnMajorMatrix delta_ub = _basic_def[_qp] - _ubC;
+  if (sqrt(pow(delta_ub(1), 2) + pow(delta_ub(2), 2)) > 0.0) // TODO: Isnt this always > 0? Ask Manish
+  {
+      // yield displacement
+      Real uy = _qYield / _k0;
+
+      // calculate hysteretic evolution parameter, z, using the Newton-Raphson method
+      unsigned int iter = 0;
+      unsigned int maxIter = 1000;
+      Real tol = 1E-6;
+      Real beta = 0.1; // beta and gamma are as per Nagarajaiah(1991), which is opposite to from Park et al.(1986)
+      Real gamma = 0.9;
+      Real tmp1, tmp2, tmp3;
+      ColumnMajorMatrix f(2, 1), delta_z(2, 1), Df(2, 2);
+      do
+      {
+        // if (_z.norm() == 0.0)  // check because of negative exponents
+        //   _z.norm() = DBL_EPSILON;
+        tmp1 = beta + gamma * MathUtils::sign(_z(0) * delta_ub(1));
+        tmp2 = beta + gamma * MathUtils::sign(_z(1) * delta_ub(2));
+        tmp3 = _z(0) * delta_ub(1) * tmp1 + _z(1) * delta_ub(2) * tmp2;
+
+        // function and derivative
+        f(0) = _z(0) - _zC(0) - 1.0 / uy * (delta_ub(1) - _z(0) * tmp3);
+        f(1) = _z(1) - _zC(1) - 1.0 / uy * (delta_ub(2) - _z(1) * tmp3);
+
+        Df(0,0) = 1.0 + (1.0/uy) * (2 * _z(0) * delta_ub(1) * tmp1 + _z(1) * delta_ub(2) * tmp2);
+        Df(1,0) = (tmp1 / uy) * _z(1) * delta_ub(1);
+        Df(0,1) = (tmp2 / uy) * _z(0) * delta_ub(2);
+        Df(1,1) = 1.0 + (1.0 / uy) * (_z(0) * delta_ub(1) * tmp1 + 2 * _z(1) * delta_ub(2) * tmp2);
+
+        // issue warning if the diagonal elements of the derivative Df is zero
+        if (MooseUtils::absoluteFuzzyLessEqual(Df(0, 0), 0.0) || MooseUtils::absoluteFuzzyLessEqual(Df(1, 1), 0.0))
+          mooseError("Error in ComputeLRIsolatorElasticity block, ", name(),
+                     ". Zero Jacobian in Newton-Raphson scheme while solving ",
+                     "for the hysteretic evolution parameter, z.\n");
+        // advance one step
+        // delta_z = f/Df
+        delta_z(0) = (f(0) * Df(1, 1) - f(1) * Df(0, 1)) / (Df(0, 0) * Df(1, 1) - Df(0, 1) * Df(1, 0));
+        delta_z(1) = (f(0) * Df(1, 0) - f(1) * Df(0, 0)) / (Df(0, 1) * Df(1, 0) - Df(0, 0) * Df(1, 1));
+        _z -= delta_z;
+        iter++;
+      }
+      while ((delta_z.norm() >= tol) && (iter < maxIter));
+
+      // Error if Newton-Raphson scheme did not converge
+      if (iter >= maxIter)
+        mooseError("Error in block, ", name(), ". Could not solve for hysteresis",
+                   " evolution parameter, z, after ", iter, " iterations and",
+                   " achieving a norm of ", delta_z.norm(), ".\n");
+
+      // calculate derivative of hysteretic evolution parameter
+      Real du1du2 = delta_ub(1) / delta_ub(2);
+      Real du2du1 = delta_ub(2) / delta_ub(1);
+      if (delta_ub(1) * delta_ub(2) == 0)
+      {
+        du1du2 = 0.0;
+        du2du1 = 0.0;
+      }
+
+      _dzdu(0,0) = (1.0/uy)*(1.0 - _z(0)*(_z(0)*tmp1+_z(1)*tmp2*du2du1));
+      _dzdu(0,1) = (1.0/uy)*(du1du2-_z(0)*(_z(0)*tmp1*du1du2+_z(1)*tmp2));
+      _dzdu(1,0) = (1.0/uy)*(du2du1-_z(1)*(_z(0)*tmp1+_z(1)*tmp2*du2du1));
+      _dzdu(1,1) = (1.0/uy)*(1.0 - _z(1)*(_z(0)*tmp1*du1du2+_z(1)*tmp2));
+
+      Real dt = _t - _tC;
+
+      // set shear force
+      _Fb[_qp](1, 0) = _cd*_basic_vel[_qp](1) + _qYield*_z(0) + _ke*_basic_def[_qp](1, 0);
+      _Fb[_qp](2, 0) = _cd*_basic_vel[_qp](2) + _qYield*_z(1) + _ke*_basic_def[_qp](2, 0);
+      // set tangent stiffness
+      _Kb[_qp](1,1) = _cd/dt + _qYield*_dzdu(0,0) + _ke;
+      _Kb[_qp](1,2) = _qYield*_dzdu(0,1);
+      _Kb[_qp](2,1) = _qYield*_dzdu(1,0);
+      _Kb[_qp](2,2) = _cd/dt + _qYield*_dzdu(1,1) + _ke;
+
+      if (_Kb[_qp](1, 2) * _Kb[_qp](2, 1) - _Kb[_qp](1, 1) * _Kb[_qp](2, 2) == 0)
+        mooseError("Error in block, ", name(), ". Jacobian for isolator is zero due to off diagonal shear elements. Please check again.\n");
+      std::cout << "$$$$$$$$$$$$$$$$$$$$$$$" << _Kb[_qp](1, 2) * _Kb[_qp](2, 1) - _Kb[_qp](1, 1) * _Kb[_qp](2, 2) << std::endl;
+  }
+
+  /* if buckling
+  if (tag==1) {
+      tag = 0;
+      return -1;  // return any negative integer
+  }*/
+}
 
 void
 ComputeLRIsolatorElasticity::addPDeltaEffects()
@@ -393,99 +390,103 @@ ComputeLRIsolatorElasticity::addPDeltaEffects()
   _Kl[_qp](10, 10) += 0.5 * _Fb[_qp](0, 0) * (1.0 - _sD) * _length[_qp];
 }
 
-// Real
-// ComputeLRIsolatorElasticity::calculateCurrentTemperature(Real _qYield, Real _TL_commit, Real vel)
-// {
-//   // lead core heating
-//   if (_t < _tCommit)
-//     tCommit = 0.0;
-//   Real a = _d1/2;
-//   Real dt = _t - _tCommit;
-//   // if (dt>1) dt = 0;
-//   Real a_lead = _pi * pow(a, 2);
-//   Real tau = (_aS * _tCurrent) / (pow(a, 2));
-//   Real F;
-//   if (tau < 0.6)
-//   {
-//     F = 2.0*sqrt(tau/_pi)-(tau/_pi)*(2.0-(tau/4.0)-pow(tau/4.0,2)-(15.0/4.0)*(pow(tau/4.0,3)));
-//   }
-//   else
-//   {
-//     F = 8.0/(3.0*_pi)-(1.0/(2.0*sqrt(_pi*tau)))*(1.0-(1.0/(12.0*tau))+(1.0/(6.0*pow(4.0*tau,2)))-(1.0/(12.0*pow(4.0*tau,3))));
-//   }
-//   Real deltaT1 = (dt/(_qL*_cL*_h))*((_qYield*vel*zC.norm())/a_lead-(_kS*_TL_commit/a)*(1.0/F+1.274*((_n-1)*_ts/a)*pow(tau,-1.0/3.0)));
-//   if (deltaT1 <= 0.0) {
-//       deltaT1 = 0.0;
-//   }
-//
-//   // use improved euler method to obtain final temperature
-//   Real TL_trial1 = _TL_commit + deltaT1;
-//   Real _tCurrent2 = _tCurrent + dt;
-//   tau = (_aS * tCurrent2) / (pow(a, 2));
-//   if (tau < 0.6) {
-//       F = 2.0*sqrt(tau/_pi)-(tau/_pi)*(2.0-(tau/4.0)-pow(tau/4.0,2)-(15.0/4.0)*(pow(tau/4.0,3)));
-//   } else {
-//       F = 8.0/(3.0*_pi)-(1.0/(2.0*sqrt(_pi*tau)))*(1.0-(1.0/(12.0*tau))+(1.0/(6.0*pow(4.0*tau,2)))-(1.0/(12.0*pow(4.0*tau,3))));
-//   }
-//   Real deltaT2 = (dt/(_qL*_cL*_h))*((_qYield*vel*zC.norm())/a_lead-(_kS*TL_trial1/a)*(1.0/F+1.274*((_n-1)*_ts/a)*pow(tau,-1.0/3.0)));
-//   if (deltaT2 <= 0.0) {
-//       deltaT2 = 0.0;
-//   }
-//
-//   Real TL_trial = TL_commit + 0.5*(deltaT1+deltaT2);
-//
-//   return TL_trial;
-// }
+Real
+ComputeLRIsolatorElasticity::calculateCurrentTemperature(Real _qYield, Real _TLC, Real vel)
+{
+  // lead core heating
+  if (_t < _tC)
+    _tC = 0.0;
+  Real a = _d1 / 2.0;
+  Real dt = _t - _tC;
+  // if (dt>1) dt = 0;
+  Real a_lead = _pi * pow(a, 2);
+  Real tau = (_aS * _t) / (pow(a, 2));
+  Real F;
+  if (tau < 0.6)
+  {
+    F = 2.0 * sqrt(tau / _pi) - (tau / _pi) * (2.0 - (tau / 4.0) - pow(tau / 4.0, 2) - (15.0 / 4.0) * (pow(tau / 4.0, 3)));
+  }
+  else
+  {
+    F = 8.0 / (3.0 * _pi) - (1.0 / (2.0 * sqrt(_pi * tau))) * (1.0 - (1.0 / (12.0 * tau)) + (1.0 / (6.0 * pow(4.0 * tau, 2))) - (1.0 / (12.0 * pow(4.0 * tau, 3))));
+  }
+  Real deltaT1 = (dt/(_rhoL*_cL*_h))*((_qYield*vel*_zC.norm())/a_lead-(_kS*_TLC/a)*(1.0/F+1.274*((_n-1)*_ts/a)*pow(tau,-1.0/3.0)));
+  if (deltaT1 <= 0.0)
+    deltaT1 = 0.0;
+
+  // use improved euler method to obtain final temperature
+  Real TL_trial1 = _TLC + deltaT1;
+  Real tCurrent2 = _t + dt;
+  tau = (_aS * tCurrent2) / (pow(a, 2));
+  if (tau < 0.6) {
+      F = 2.0*sqrt(tau/_pi)-(tau/_pi)*(2.0-(tau/4.0)-pow(tau/4.0,2)-(15.0/4.0)*(pow(tau/4.0,3)));
+  } else {
+      F = 8.0/(3.0*_pi)-(1.0/(2.0*sqrt(_pi*tau)))*(1.0-(1.0/(12.0*tau))+(1.0/(6.0*pow(4.0*tau,2)))-(1.0/(12.0*pow(4.0*tau,3))));
+  }
+  Real deltaT2 = (dt/(_rhoL*_cL*_h))*((_qYield*vel*_zC.norm())/a_lead-(_kS*TL_trial1/a)*(1.0/F+1.274*((_n-1)*_ts/a)*pow(tau,-1.0/3.0)));
+  if (deltaT2 <= 0.0) {
+      deltaT2 = 0.0;
+  }
+
+  Real _TL_trial = _TLC + 0.5 * (deltaT1 + deltaT2);
+
+  return _TL_trial;
+}
 
 void
 ComputeLRIsolatorElasticity::finalize()
 {
-  // Real uh = sqrt(_basic_def[_qp](1, 0) * _basic_def[_qp](1, 0) + _basic_def[_qp](2, 0) * _basic_def[_qp](2, 0));
-  //
-  // // vertical motion
-  // if (_vertical_stiffness_variation)
-  // {
-  //   _kv = _kv0 * (1.0 / (1.0 + (3.0 / (_pi * _pi)) * (uh / _rg) * (uh / _rg)));
-  //   if (uh > 0.0)
-  //     _uc = _Fc/_kv;
-  // }
+  Real uh = sqrt(_basic_def[_qp](1, 0) * _basic_def[_qp](1, 0) + _basic_def[_qp](2, 0) * _basic_def[_qp](2, 0));
 
-  // compression
-  // if (_buckling_load_variation) {
-  //     Real Delta = 2.0*acos(uh/D2);   // this becomes undefined for uh/D2 > 1.0
-  //     //Ar = (D2*D2/4.0)*(Delta-sin(Delta));
-  //     Ar = ((D2+_tc)*(D2+_tc) - D1*D1)/4.0*(Delta-sin(Delta));  // A does not include lead core
-  //     if (Ar/A < 0.2 || uh/D2 >= 1.0) {
-  //         _Fcrn = 0.2*_Fcr;
-  //     } else {
-  //         _Fcrn = _Fcr*Ar/A;
-  //     }
-  //
-  //     if (_Fcrn > _Fcrmin)
-  //         _Fcrmin = _Fcrn;
-  //     _ucrn = _Fcrn/_kv;
-  // }
+  // Vertical stiffness
+  if (_vertical_stiffness_variation)
+  {
+    _kv = _kv0 * (1.0 / (1.0 + (3.0 / (_pi * _pi)) * (uh / _rg) * (uh / _rg)));
+    if (uh > 0.0)
+      _uc = _Fc/_kv;
+  }
 
-  // horizontal motion
-  // if (_horizontal_stiffness_variation)
-  // {
-  //   _ke = (G*A/Tr)*(1.0-pow(_Fb[_qp](0, 0)/_Fcrn,2));
-  //   //if (ke < 0) {
-  //   //    ke = 0.01*(G*A/Tr);  // a fraction of ke to avoid convergence issues
-  //   //    opserr << "WARNING LeadRubberX::commitState() - Negative horizontal stiffness\n";
-  //   //}
-  // }
+  // Buckling load
+  if (_buckling_load_variation)
+  {
+    mooseAssert((uh / _d2 <= 1.0), "Horizontal displacement is greater than the outer diameter of the isolator!\n");
+    Real delta = 2.0 * acos(uh / _d2);   // this becomes undefined for uh/_d2 > 1.0
+    Real _Ar = ((_d2 + _tc) * (_d2 + _tc) - _d1 * _d1) / 4.0 * (delta - sin(delta));  // _Ar does not include lead core
+    // _Ar = (_d2*_d2/4.0)*(Delta-sin(Delta)); // for elastomeric bearings (_d1 == 0)
+    if  ( _Ar / _A < 0.2 || uh / _d2 >= 1.0)
+    {
+      _Fcrn = 0.2 * _Fcr;
+    }
+    else
+    {
+      _Fcrn = _Fcr * _Ar / _A;
+    }
+
+    if (_Fcrn > _Fcrmin)
+      _Fcrmin = _Fcrn;
+    _ucrn = _Fcrn/_kv;
+  }
+
+  // update horizontal stiffness variation
+  if (_horizontal_stiffness_variation)
+  {
+    _ke = (_Gr * _A / _Tr) * (1.0 - pow(_Fb[_qp](0) / _Fcrn, 2));
+    //if (_ke < 0) {
+    //    _ke = 0.01*(G*_A/Tr);  // a fraction of _ke to avoid convergence issues
+    //    opserr << "WARNING LeadRubberX::commitState() - Negative horizontal stiffness\n";
+    //}
+  }
 
   // lead core heating
-  // _TL_commit = _TL_trial;
-  // _tCommit = _t;
-  // if (_strength_degradation) {
-  //     _qYield = _qYield0 * exp(-0.0069 * _TL_commit);
-  // }
-  //
-  // // commit trial history variables for horizontal direction
-  // ubC = ub;
-  // zC = z;
+  _TLC = _TL_trial;
+  _tC = _t;
+  if (_strength_degradation) {
+      _qYield = _qYield0 * exp(-0.0069 * _TLC);
+  }
+
+  // commit trial history variables for horizontal direction
+  _ubC = _basic_def[_qp];
+  _zC = _z;
 
   // Converting forces from basic to local to global
   _Fl[_qp] = _total_lb[_qp].transpose() * _Fb[_qp]; // local forces

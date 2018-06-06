@@ -45,10 +45,10 @@ protected:
   void computeAxial();
 
   /// Computes the forces and stiffness matrix elements in shear
-  // void computeShear();
+  void computeShear();
 
   /// Computes the current temperature in the lead core
-  // Real calculateCurrentTemperature(Real _qYield, Real _TL_commit, Real vel);
+  Real calculateCurrentTemperature(Real _qYield, Real _TLC, Real vel);
 
   /// Changes the stiffness matrix in the local coordinate system by adding
   /// P-Delta effects
@@ -241,10 +241,25 @@ protected:
   Real _umax;
 
   /// Trial lead temperature
-  // Real & _TL_trial;
+  Real _TL_trial;
 
   /// Committed lead temperature
-  // Real & _TL_commit;
+  Real _TLC;
+
+  /// Hysteresis parameters
+  ColumnMajorMatrix _z;
+
+  /// Committed hysteresis parameters
+  ColumnMajorMatrix _zC;
+
+  /// Tangent matrix of hysteretic evolution parameters
+  ColumnMajorMatrix _dzdu;
+
+  /// Committed displacements in the basic system
+  ColumnMajorMatrix _ubC;
+
+  /// Time at which variables are committed
+  Real _tC;
 };
 
 #endif // COMPUTELRISOLATORELASTICITY_H

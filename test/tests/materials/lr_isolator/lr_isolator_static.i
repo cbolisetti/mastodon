@@ -200,19 +200,19 @@
     boundary = left
     value = 0.0
   [../]
-  [./fixr1]
+  [./fixrx1]
     type = DirichletBC
     variable = rot_x
     boundary = left
     value = 0.0
   [../]
-  [./fixr2]
+  [./fixry1]
     type = DirichletBC
     variable = rot_y
     boundary = left
     value = 0.0
   [../]
-  [./fixr3]
+  [./fixrz1]
     type = DirichletBC
     variable = rot_z
     boundary = left
@@ -306,9 +306,10 @@
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-8
   start_time = 0.0
+  end_time = 1
   dt = 0.05
   dtmin = 0.01
-  num_steps = 2
+  # num_steps = 2
   timestep_tolerance = 1e-6
 []
 
@@ -364,7 +365,16 @@
 []
 
 [Materials]
-  [./stiffness]
+  [./deformation]
+    type = ComputeIsolatorDeformation
+    block = 0
+    sd_ratio = 0.5
+    y_orientation = '0.0 1.0 0.0'
+    displacements = 'disp_x disp_y disp_z'
+    rotations = 'rot_x rot_y rot_z'
+    velocities = 'vel_x vel_y vel_z'
+  [../]
+  [./elasticity]
     type = ComputeLRIsolatorElasticity
     block = 0
     fy = 1.0
@@ -378,21 +388,12 @@
     n = 10
     tc = 0.15
   [../]
-  [./deformations]
-    type = ComputeIsolatorDeformation
-    block = 0
-    sd_ratio = 0.5
-    y_orientation = '0.0 1.0 0.0'
-    displacements = 'disp_x disp_y disp_z'
-    rotations = 'rot_x rot_y rot_z'
-    velocities = 'vel_x vel_y vel_z'
-  [../]
-  [./density]
-    type = GenericConstantMaterial
-    block = 0
-    prop_names = 'density'
-    prop_values = '1.0'
-  [../]
+  # [./density]
+  #   type = GenericConstantMaterial
+  #   block = 0
+  #   prop_names = 'density'
+  #   prop_values = '1.0'
+  # [../]
 []
 
 [Postprocessors]
