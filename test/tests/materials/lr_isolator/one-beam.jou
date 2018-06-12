@@ -1,0 +1,10 @@
+reset
+set node constraint on
+create vertex 0 0 0 
+create vertex 1 0 0 
+create curve vertex 1 2  
+curve 1  interval 1
+curve 1  scheme bias factor 1.0 
+block 1 curve 1
+block 1 element type BEAM2
+mesh curve 1 

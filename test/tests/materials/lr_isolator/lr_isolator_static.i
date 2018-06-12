@@ -86,6 +86,18 @@
   order = FIRST
   family = LAGRANGE
   [../]
+  [./reaction_x]
+  [../]
+  [./reaction_y]
+  [../]
+  [./reaction_z]
+  [../]
+  [./reaction_xx]
+  [../]
+  [./reaction_yy]
+  [../]
+  [./reaction_zz]
+  [../]
 []
 
 [AuxKernels]
@@ -182,51 +194,73 @@
 []
 
 [BCs]
-  [./fixx1]
+  [./fixx0]
     type = DirichletBC
     variable = disp_x
     boundary = left
     value = 0.0
   [../]
-  [./fixy1]
+  [./fixy0]
     type = DirichletBC
     variable = disp_y
     boundary = left
     value = 0.0
   [../]
-  [./fixz1]
+  [./fixz0]
     type = DirichletBC
     variable = disp_z
     boundary = left
     value = 0.0
   [../]
-  [./fixrx1]
+  [./fixrx0]
     type = DirichletBC
     variable = rot_x
     boundary = left
     value = 0.0
   [../]
-  [./fixry1]
+  [./fixry0]
     type = DirichletBC
     variable = rot_y
     boundary = left
     value = 0.0
   [../]
-  [./fixrz1]
+  [./fixrz0]
     type = DirichletBC
     variable = rot_z
     boundary = left
     value = 0.0
   [../]
-  [./disp_x_2]
+  # [./fixy1]
+  #   type = DirichletBC
+  #   variable = disp_y
+  #   boundary = right
+  #   value = 0.0
+  # [../]
+  # [./fixz1]
+  #   type = DirichletBC
+  #   variable = disp_z
+  #   boundary = right
+  #   value = 0.0
+  # [../]
+  [./disp_x_1]
     type = PresetDisplacement
-    boundary = 'right'
-    function = 'disp_x_2'
-    variable = 'disp_x'
+    boundary = right
+    function = history
+    variable = disp_x
     beta = 0.25
-    acceleration = 'accel_x'
-    velocity = 'vel_x'
+    acceleration = accel_x
+    velocity = vel_x
   [../]
+  # [./disp_y_2]
+  #   type = PresetAcceleration
+  #   boundary = right
+  #   function = disp_history
+  #   variable = disp_y
+  #   beta = 0.25
+  #   acceleration = accel_y
+  #   velocity = vel_y
+  #   # scale_factor = 0.01
+  # [../]
 []
 
 # [NodalKernels]
@@ -299,10 +333,13 @@
     x = '0.0 1.0' # time
     y = '0.0 30.0'  # moment
   [../]
-  [./disp_x_2]
-    type = PiecewiseLinear
-    data_file = disp_axial.csv
-    format = 'columns'
+  [./history]
+    type = ParsedFunction
+    value = 0.01*cos(t*pi)
+    # data_file = disp_axial2.csv
+    # format = columns
+    # x = '0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0'
+    # y = '0.0 0.0 0.0 -0.1 0.0 0.2 0.0 -0.3 0.0 0.4 0.0 -0.5 0.0'
   [../]
 []
 
@@ -320,61 +357,67 @@
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-8
   start_time = 0.0
-  end_time = 10
-  dt = 0.05
-  dtmin = 0.01
+  end_time = 5
+  dt = 0.005
+  dtmin = 0.001
   # num_steps = 2
   timestep_tolerance = 1e-6
 []
 
 [Kernels]
-  [./spring_disp_x]
+  [./lr_disp_x]
     type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
     component = 0
     variable = disp_x
+    save_in = reaction_x
   [../]
-  [./spring_disp_y]
+  [./lr_disp_y]
     type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
     component = 1
     variable = disp_y
+    save_in = reaction_y
   [../]
-  [./spring_disp_z]
+  [./lr_disp_z]
     type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
     component = 2
     variable = disp_z
+    save_in = reaction_z
   [../]
-  [./spring_rot_x]
+  [./lr_rot_x]
     type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
     component = 3
     variable = rot_x
+    save_in = reaction_xx
   [../]
-  [./spring_rot_y]
+  [./lr_rot_y]
     type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
     component = 4
     variable = rot_y
+    save_in = reaction_yy
   [../]
-  [./spring_rot_z]
+  [./lr_rot_z]
     type = StressDivergenceIsolator
     block = '0'
     displacements = 'disp_x disp_y disp_z'
     rotations = 'rot_x rot_y rot_z'
     component = 5
     variable = rot_z
+    save_in = reaction_zz
   [../]
 []
 
@@ -424,38 +467,54 @@
 
 [Postprocessors]
   [./disp_x]
-    type = PointValue
-    point = '1.0 0.0 0.0'
+    type = NodalVariableValue
+    nodeid = 1
     variable = disp_x
   [../]
-  [./disp_y]
-    type = PointValue
-    point = '1.0 0.0 0.0'
-    variable = disp_y
+  [./reaction_x]
+    type = NodalSum
+    variable = reaction_x
+    boundary = left
   [../]
-  [./disp_z]
-    type = PointValue
-    point = '1.0 0.0 0.0'
-    variable = disp_z
-  [../]
-  [./rot_x]
-    type = PointValue
-    point = '1.0 0.0 0.0'
-    variable = rot_x
-  [../]
-  [./rot_y]
-    type = PointValue
-    point = '1.0 0.0 0.0'
-    variable = rot_y
-  [../]
-  [./rot_z]
-    type = PointValue
-    point = '1.0 0.0 0.0'
-    variable = rot_z
-  [../]
+  # [./disp_y]
+  #   type = NodalVariableValue
+  #   nodeid = 1
+  #   variable = disp_y
+  # [../]
+  # [./reaction_y]
+  #   type = NodalSum
+  #   variable = reaction_y
+  #   boundary = left
+  # [../]
+  # [./disp_y]
+  #   type = PointValue
+  #   point = '1.0 0.0 0.0'
+  #   variable = disp_y
+  # [../]
+  # [./disp_z]
+  #   type = PointValue
+  #   point = '1.0 0.0 0.0'
+  #   variable = disp_z
+  # [../]
+  # [./rot_x]
+  #   type = PointValue
+  #   point = '1.0 0.0 0.0'
+  #   variable = rot_x
+  # [../]
+  # [./rot_y]
+  #   type = PointValue
+  #   point = '1.0 0.0 0.0'
+  #   variable = rot_y
+  # [../]
+  # [./rot_z]
+  #   type = PointValue
+  #   point = '1.0 0.0 0.0'
+  #   variable = rot_z
+  # [../]
 []
 
 [Outputs]
   csv = true
-  print_perf_log = true
+  exodus = true
+  # print_perf_log = true
 []

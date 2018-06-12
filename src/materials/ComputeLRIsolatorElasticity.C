@@ -176,6 +176,9 @@ ComputeLRIsolatorElasticity::initializeLRIsolator()
   _Kb[_qp](4, 4) = Er * Is / _h; // rotational stiffness
   _Kb[_qp](5, 5) = Er * Is / _h; // rotational stiffness
 
+  // _Kb[_qp].identity();
+
+
   // Initializing forces
   _Fb[_qp].reshape(6, 1); // forces in the basic system
   _Fb[_qp].zero();
@@ -185,10 +188,10 @@ ComputeLRIsolatorElasticity::initializeLRIsolator()
 
   // Making all stiffnesses in _Kb as ones
   _Fb[_qp] = _Kb[_qp] * _basic_def[_qp];
-  // std::cout << "**** Force vector basic*** = \n";
-  // _Fb[_qp].print();
-  // std::cout << "**** Stiffness matrix basic**** =\n";
-  // _Kb[_qp].print();
+  std::cout << "**** Force vector basic*** = \n";
+  _Fb[_qp].print();
+  std::cout << "**** Stiffness matrix basic**** =\n";
+  _Kb[_qp].print();
 }
 
 void
@@ -429,15 +432,13 @@ ComputeLRIsolatorElasticity::calculateCurrentTemperature(Real _qYield, Real _TLC
   Real TL_trial1 = _TLC + deltaT1;
   Real tCurrent2 = _t + dt;
   tau = (_aS * tCurrent2) / (pow(a, 2));
-  if (tau < 0.6) {
-      F = 2.0*sqrt(tau/_pi)-(tau/_pi)*(2.0-(tau/4.0)-pow(tau/4.0,2)-(15.0/4.0)*(pow(tau/4.0,3)));
-  } else {
-      F = 8.0/(3.0*_pi)-(1.0/(2.0*sqrt(_pi*tau)))*(1.0-(1.0/(12.0*tau))+(1.0/(6.0*pow(4.0*tau,2)))-(1.0/(12.0*pow(4.0*tau,3))));
-  }
+  if (tau < 0.6)
+    F = 2.0*sqrt(tau/_pi)-(tau/_pi)*(2.0-(tau/4.0)-pow(tau/4.0,2)-(15.0/4.0)*(pow(tau/4.0,3)));
+  else
+    F = 8.0/(3.0*_pi)-(1.0/(2.0*sqrt(_pi*tau)))*(1.0-(1.0/(12.0*tau))+(1.0/(6.0*pow(4.0*tau,2)))-(1.0/(12.0*pow(4.0*tau,3))));
   Real deltaT2 = (dt/(_rhoL*_cL*_h))*((_qYield*vel*_zC.norm())/a_lead-(_kS*TL_trial1/a)*(1.0/F+1.274*((_n-1)*_ts/a)*pow(tau,-1.0/3.0)));
-  if (deltaT2 <= 0.0) {
-      deltaT2 = 0.0;
-  }
+  if (deltaT2 <= 0.0)
+    deltaT2 = 0.0;
 
   Real _TL_trial = _TLC + 0.5 * (deltaT1 + deltaT2);
 
