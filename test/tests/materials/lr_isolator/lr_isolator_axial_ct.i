@@ -230,18 +230,6 @@
     boundary = left
     value = 0.0
   [../]
-  # [./fixy1]
-  #   type = DirichletBC
-  #   variable = disp_y
-  #   boundary = right
-  #   value = 0.0
-  # [../]
-  # [./fixz1]
-  #   type = DirichletBC
-  #   variable = disp_z
-  #   boundary = right
-  #   value = 0.0
-  # [../]
   [./disp_x_1]
     type = PresetDisplacement
     boundary = right
@@ -251,16 +239,6 @@
     acceleration = accel_x
     velocity = vel_x
   [../]
-  # [./disp_y_2]
-  #   type = PresetAcceleration
-  #   boundary = right
-  #   function = disp_history
-  #   variable = disp_y
-  #   beta = 0.25
-  #   acceleration = accel_y
-  #   velocity = vel_y
-  #   # scale_factor = 0.01
-  # [../]
 []
 
 # [NodalKernels]
@@ -334,10 +312,9 @@
     y = '0.0 30.0'  # moment
   [../]
   [./history]
-    type = ParsedFunction
-    value = 0.01*cos(t*pi)
-    # data_file = disp_axial2.csv
-    # format = columns
+    type = PiecewiseLinear
+    data_file = disp_axial.csv
+    format = columns
     # x = '0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0'
     # y = '0.0 0.0 0.0 -0.1 0.0 0.2 0.0 -0.3 0.0 0.4 0.0 -0.5 0.0'
   [../]
@@ -356,8 +333,8 @@
   line_search = none
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-8
-  start_time = 0.0
-  end_time = 5
+  start_time = -0.015
+  end_time = 10
   dt = 0.005
   dtmin = 0.001
   # num_steps = 2
@@ -457,12 +434,6 @@
     strength_degradation = true
     buckling_load_variation = true
   [../]
-  # [./density]
-  #   type = GenericConstantMaterial
-  #   block = 0
-  #   prop_names = 'density'
-  #   prop_values = '1.0'
-  # [../]
 []
 
 [Postprocessors]
@@ -476,45 +447,60 @@
     variable = reaction_x
     boundary = left
   [../]
-  # [./disp_y]
-  #   type = NodalVariableValue
-  #   nodeid = 1
-  #   variable = disp_y
-  # [../]
-  # [./reaction_y]
-  #   type = NodalSum
-  #   variable = reaction_y
-  #   boundary = left
-  # [../]
-  # [./disp_y]
-  #   type = PointValue
-  #   point = '1.0 0.0 0.0'
-  #   variable = disp_y
-  # [../]
-  # [./disp_z]
-  #   type = PointValue
-  #   point = '1.0 0.0 0.0'
-  #   variable = disp_z
-  # [../]
-  # [./rot_x]
-  #   type = PointValue
-  #   point = '1.0 0.0 0.0'
-  #   variable = rot_x
-  # [../]
-  # [./rot_y]
-  #   type = PointValue
-  #   point = '1.0 0.0 0.0'
-  #   variable = rot_y
-  # [../]
-  # [./rot_z]
-  #   type = PointValue
-  #   point = '1.0 0.0 0.0'
-  #   variable = rot_z
-  # [../]
+  [./disp_y]
+    type = NodalVariableValue
+    nodeid = 1
+    variable = disp_y
+  [../]
+  [./reaction_y]
+    type = NodalSum
+    variable = reaction_y
+    boundary = left
+  [../]
+  [./disp_z]
+    type = NodalVariableValue
+    nodeid = 1
+    variable = disp_z
+  [../]
+  [./reaction_z]
+    type = NodalSum
+    variable = reaction_z
+    boundary = left
+  [../]
+  [./rot_x]
+    type = NodalVariableValue
+    nodeid = 1
+    variable = rot_x
+  [../]
+  [./reaction_xx]
+    type = NodalSum
+    variable = reaction_xx
+    boundary = left
+  [../]
+  [./rot_y]
+    type = NodalVariableValue
+    nodeid = 1
+    variable = rot_y
+  [../]
+  [./reaction_yy]
+    type = NodalSum
+    variable = reaction_yy
+    boundary = left
+  [../]
+  [./rot_z]
+    type = NodalVariableValue
+    nodeid = 1
+    variable = rot_z
+  [../]
+  [./reaction_zz]
+    type = NodalSum
+    variable = reaction_zz
+    boundary = left
+  [../]
 []
 
 [Outputs]
   csv = true
   exodus = true
-  # print_perf_log = true
+  print_perf_log = true
 []
