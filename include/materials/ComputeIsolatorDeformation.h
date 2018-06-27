@@ -68,8 +68,14 @@ protected:
   /// Displacements in the isolator basic system, namely, deformations
   MaterialProperty<ColumnMajorMatrix> & _basic_disp;
 
+  /// Displacements in the isolator basic system, namely, old deformations
+  MaterialProperty<ColumnMajorMatrix> & _basic_disp_old;
+
   /// Velocities in the isolator basic system, namely, deformation rates
   MaterialProperty<ColumnMajorMatrix> & _basic_vel;
+
+  /// Velocities in the isolator basic system, namely, old deformation rates
+  MaterialProperty<ColumnMajorMatrix> & _basic_vel_old;
 
   /// Transformation matrix from global coordinate system to isolator local configuration at t=0
   MaterialProperty<ColumnMajorMatrix> & _original_gl;

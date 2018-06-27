@@ -105,6 +105,12 @@ protected:
   /// Thickness of rubber cover
   const Real & _tc;
 
+  /// Gamma parameter of Newmark algorithm
+  const Real & _gamma;
+
+  /// Beta parameter of Newmark algorithm
+  const Real & _beta;
+
   /// Mass density of lead
   const Real & _rhoL;
 
@@ -135,8 +141,14 @@ protected:
   /// Isolator deformations in the basic system
   const MaterialProperty<ColumnMajorMatrix> & _basic_def;
 
+  /// Isolator old deformations in the basic system
+  const MaterialProperty<ColumnMajorMatrix> & _basic_def_old;
+
   /// Isolator deformation rates in the basic system
   const MaterialProperty<ColumnMajorMatrix> & _basic_vel;
+
+  /// Isolator old deformations rates in the basic system
+  const MaterialProperty<ColumnMajorMatrix> & _basic_vel_old;
 
   /// Isolator forces (including moments) in the basic system
   MaterialProperty<ColumnMajorMatrix> & _Fb;

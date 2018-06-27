@@ -37,6 +37,8 @@ validParams<ComputeLRIsolatorElasticity>()
   params.addRequiredParam<Real>("tr", "Thickness of a single rubber layer.");
   params.addRequiredParam<Real>("n", "Number of rubber layers.");
   params.addRequiredParam<Real>("tc", "Thickness of the rubber cover of the bearing.");
+  params.addRequiredParam<Real>("gamma", "Gamma parameter of Newmark algorithm.");
+  params.addRequiredParam<Real>("beta", "Beta parameter of Newmark algorithm.");
   params.addParam<Real>("rho_lead", 11200.0, "Density of lead. Defaults to 11200 kg/m3.");
   params.addParam<Real>("c_lead", 130.0, "Specific heat capacity of lead. Defaults to 130.0 N-m/kg oC.");
   params.addParam<Real>("k_steel", 50.0, "Thermal conductivity of steel. Defaults to 50.0 W/(m-oC).");
@@ -67,6 +69,8 @@ ComputeLRIsolatorElasticity::ComputeLRIsolatorElasticity(const InputParameters &
     _tr(getParam<Real>("tr")),
     _n(getParam<Real>("n")),
     _tc(getParam<Real>("tc")),
+    _gamma(getParam<Real>("gamma")),
+    _beta(getParam<Real>("beta")),
     _rhoL(getParam<Real>("rho_lead")), //qL in opensees
     _cL(getParam<Real>("c_lead")),
     _kS(getParam<Real>("k_steel")),
@@ -78,7 +82,9 @@ ComputeLRIsolatorElasticity::ComputeLRIsolatorElasticity(const InputParameters &
     // _sD(getMaterialPropertyByName<Real>("sd_ratio")), // Shear distance ratio
     _sD(0.5),
     _basic_def(getMaterialPropertyByName<ColumnMajorMatrix>("deformations")),
+    _basic_def_old(getMaterialPropertyByName<ColumnMajorMatrix>("old deformations")),
     _basic_vel(getMaterialPropertyByName<ColumnMajorMatrix>("deformation_rates")),
+    _basic_vel_old(getMaterialPropertyByName<ColumnMajorMatrix>("old deformations rates")),
     _Fb(declareProperty<ColumnMajorMatrix>("basic_forces")),
     _Fl(declareProperty<ColumnMajorMatrix>("local_forces")),
     _Fg(declareProperty<ColumnMajorMatrix>("global_forces")),
@@ -88,9 +94,9 @@ ComputeLRIsolatorElasticity::ComputeLRIsolatorElasticity(const InputParameters &
     _total_gl(getMaterialPropertyByName<ColumnMajorMatrix>("total_global_to_local_transformation")),
     _total_lb(getMaterialPropertyByName<ColumnMajorMatrix>("total_local_to_basic_transformation")),
     _length(getMaterialPropertyByName<Real>("initial_isolator_length")),
-    _pi(libMesh::pi)
-    // _TL_trial(0.0),
-    // _TLC(0.0)
+    _pi(libMesh::pi),
+    _TL_trial(0.0),
+    _TLC(0.0)
 {
   // Bearing material and geometric parameters
   _A = (_pi / 4.0) * ((_d2 + _tc) * (_d2 + _tc) - _d1 * _d1); // Bonded rubber area of bearing
@@ -119,10 +125,10 @@ ComputeLRIsolatorElasticity::ComputeLRIsolatorElasticity(const InputParameters &
   _k0 = (1.0 / _alpha - 1.0) * _ke; // Initial stiffness of hysteretic component (due to lead)
 
   // Axial parameters: compression
-  // Real Erot = Ec / 3.0; // Rotation modulus of bearing
+  Real Erot = Ec / 3.0; // Rotation modulus of bearing
   Real As = _A * _h / _Tr; // Adjusted shear area of bearing
   Real Is = I * _h / _Tr; // Adjusted moment of intertia of bearing
-  Real Pe = _pi * _pi * Er * Is / (_h * _h); // Euler buckling load of bearing
+  Real Pe = _pi * _pi * Erot * Is / (_h * _h); // Euler buckling load of bearing
   _kv0 = _A * Ec / _Tr; // Pre-cavitation tensile stiffness at zero lateral displacement
   _kv = _kv0; // Pre-cavitation stiffness initialized to that at zero displacement
   _Fcr = -sqrt(Pe * _Gr * As); // Critical buckling load in compression
@@ -188,10 +194,10 @@ ComputeLRIsolatorElasticity::initializeLRIsolator()
 
   // Making all stiffnesses in _Kb as ones
   _Fb[_qp] = _Kb[_qp] * _basic_def[_qp];
-  std::cout << "**** Force vector basic*** = \n";
-  _Fb[_qp].print();
-  std::cout << "**** Stiffness matrix basic**** =\n";
-  _Kb[_qp].print();
+  //std::cout << "**** Force vector basic*** = \n";
+  //_Fb[_qp].print();
+  //std::cout << "**** Stiffness matrix basic**** =\n";
+  //_Kb[_qp].print();
 }
 
 void
@@ -234,7 +240,7 @@ ComputeLRIsolatorElasticity::computeAxial()
     if (_buckling_load_variation)
     {
       _Kb[_qp](0, 0) = _kv / 1000.0;
-      _Fb[_qp](0) = _Fcrmin + _Kb[_qp](0, 0) * (_basic_def[_qp](0) - _ucrn);
+      _Fb[_qp](0, 0) = _Fcrmin + _Kb[_qp](0, 0) * (_basic_def[_qp](0) - _ucrn);
     }
     else
     {
@@ -280,13 +286,18 @@ void
 ComputeLRIsolatorElasticity::computeShear()
 {
   // current temperature of the lead core
-  Real vel = sqrt(_basic_vel[_qp](1) * _basic_vel[_qp](1) + _basic_vel[_qp](2) * _basic_vel[_qp](2));
+  Real vel1 = _basic_vel_old[_qp](1,0)+ (_gamma/_beta)*(((_basic_def[_qp](1, 0)-_basic_def_old[_qp](1,0))/_dt)-(_basic_vel_old[_qp](1,0)));
+  Real vel2 = _basic_vel_old[_qp](2,0)+ (_gamma/_beta)*(((_basic_def[_qp](2, 0)-_basic_def_old[_qp](2,0))/_dt)-(_basic_vel_old[_qp](2,0)));
+
+  Real vel = sqrt(vel1*vel1 + vel2*vel2);
+  //sqrt(_basic_vel[_qp](1) * _basic_vel[_qp](1) + _basic_vel[_qp](2) * _basic_vel[_qp](2));
+
   _TL_trial = calculateCurrentTemperature(_qYield, _TLC, vel);
 
   // calculating shear forces and stiffnesses in basic y and z directions
   // get displacement increments (trial-commited)
   ColumnMajorMatrix delta_ub = _basic_def[_qp] - _ubC;
-  if (sqrt(pow(delta_ub(1), 2) + pow(delta_ub(2), 2)) > 0.0) // TODO: Isnt this always > 0? Ask Manish
+  if (sqrt(pow(delta_ub(1), 2) + pow(delta_ub(2), 2)) >= 0.0) // TODO: Isnt this always > 0? Ask Manish
   {
       // yield displacement
       Real uy = _qYield / _k0;
@@ -325,7 +336,7 @@ ComputeLRIsolatorElasticity::computeShear()
         // delta_z = f/Df
         delta_z(0) = (f(0) * Df(1, 1) - f(1) * Df(0, 1)) / (Df(0, 0) * Df(1, 1) - Df(0, 1) * Df(1, 0));
         delta_z(1) = (f(0) * Df(1, 0) - f(1) * Df(0, 0)) / (Df(0, 1) * Df(1, 0) - Df(0, 0) * Df(1, 1));
-        _z -= delta_z;
+        _z =_z-delta_z;
         iter++;
       }
       while ((delta_z.norm() >= tol) && (iter < maxIter));
@@ -355,20 +366,19 @@ ComputeLRIsolatorElasticity::computeShear()
         dt = _dt;
 
       // set shear force
-      _Fb[_qp](1, 0) = _cd*_basic_vel[_qp](1) + _qYield*_z(0) + _ke*_basic_def[_qp](1, 0);
-      _Fb[_qp](2, 0) = _cd*_basic_vel[_qp](2) + _qYield*_z(1) + _ke*_basic_def[_qp](2, 0);
+      _Fb[_qp](1, 0) = _cd*vel1 + _qYield*_z(0) + _ke*_basic_def[_qp](1, 0);
+      _Fb[_qp](2, 0) = _cd*vel2 + _qYield*_z(1) + _ke*_basic_def[_qp](2, 0);
+
       // set tangent stiffness
-      _Kb[_qp](1,1) = _cd/dt + _qYield*_dzdu(0,0) + _ke;
+      _Kb[_qp](1,1) = (_gamma/_beta)*_cd/_dt + _qYield*_dzdu(0,0) + _ke;
       _Kb[_qp](1,2) = _qYield*_dzdu(0,1);
       _Kb[_qp](2,1) = _qYield*_dzdu(1,0);
-      _Kb[_qp](2,2) = _cd/dt + _qYield*_dzdu(1,1) + _ke;
+      _Kb[_qp](2,2) = (_gamma/_beta)*_cd/_dt + _qYield*_dzdu(1,1) + _ke;
 
-      std::cout << "**** Kb after shear calculation is: \n";
+      //std::cout << "**** Kb after shear calculation is: \n";
       // _Kb[_qp].print();
       // _dzdu.print();
       // _z.print();
-
-      // std::cout << uy << "\n" << tmp1 << "\n" << tmp2 << "\n" << du1du2 << "\n" << du2du1 << "\n";
 
       if (_Kb[_qp](1, 2) * _Kb[_qp](2, 1) - _Kb[_qp](1, 1) * _Kb[_qp](2, 2) == 0)
         mooseError("Error in block, ", name(), ". Jacobian for isolator is zero due to off diagonal shear elements. Please check again.\n");
@@ -408,6 +418,10 @@ Real
 ComputeLRIsolatorElasticity::calculateCurrentTemperature(Real _qYield, Real _TLC, Real vel)
 {
   // lead core heating
+
+  if (_t<=0)
+    return 0.0;
+
   if (_t < _tC)
     _tC = 0.0;
   Real a = _d1 / 2.0;
@@ -424,7 +438,7 @@ ComputeLRIsolatorElasticity::calculateCurrentTemperature(Real _qYield, Real _TLC
   {
     F = 8.0 / (3.0 * _pi) - (1.0 / (2.0 * sqrt(_pi * tau))) * (1.0 - (1.0 / (12.0 * tau)) + (1.0 / (6.0 * pow(4.0 * tau, 2))) - (1.0 / (12.0 * pow(4.0 * tau, 3))));
   }
-  Real deltaT1 = (dt/(_rhoL*_cL*_h))*((_qYield*vel*_zC.norm())/a_lead-(_kS*_TLC/a)*(1.0/F+1.274*((_n-1)*_ts/a)*pow(tau,-1.0/3.0)));
+  Real deltaT1 = (dt/(_rhoL*_cL*_h))*((_qYield*vel)/a_lead-(_kS*_TLC/a)*(1.0/F+1.274*((_n-1)*_ts/a)*pow(tau,-1.0/3.0)));
   if (deltaT1 <= 0.0)
     deltaT1 = 0.0;
 
@@ -436,7 +450,7 @@ ComputeLRIsolatorElasticity::calculateCurrentTemperature(Real _qYield, Real _TLC
     F = 2.0*sqrt(tau/_pi)-(tau/_pi)*(2.0-(tau/4.0)-pow(tau/4.0,2)-(15.0/4.0)*(pow(tau/4.0,3)));
   else
     F = 8.0/(3.0*_pi)-(1.0/(2.0*sqrt(_pi*tau)))*(1.0-(1.0/(12.0*tau))+(1.0/(6.0*pow(4.0*tau,2)))-(1.0/(12.0*pow(4.0*tau,3))));
-  Real deltaT2 = (dt/(_rhoL*_cL*_h))*((_qYield*vel*_zC.norm())/a_lead-(_kS*TL_trial1/a)*(1.0/F+1.274*((_n-1)*_ts/a)*pow(tau,-1.0/3.0)));
+  Real deltaT2 = (dt/(_rhoL*_cL*_h))*((_qYield*vel)/a_lead-(_kS*TL_trial1/a)*(1.0/F+1.274*((_n-1)*_ts/a)*pow(tau,-1.0/3.0)));
   if (deltaT2 <= 0.0)
     deltaT2 = 0.0;
 
@@ -456,6 +470,7 @@ ComputeLRIsolatorElasticity::finalize()
     _kv = _kv0 * (1.0 / (1.0 + (3.0 / (_pi * _pi)) * (uh / _rg) * (uh / _rg)));
     if (uh > 0.0)
       _uc = _Fc/_kv;
+      _ucr=_Fcr/_kv;
   }
 
   // Buckling load
@@ -506,13 +521,13 @@ ComputeLRIsolatorElasticity::finalize()
 
   // Converting stiffness matrix from basic to local to global
   _Kl[_qp] = _total_lb[_qp].transpose() * _Kb[_qp] * _total_lb[_qp]; // convert basic stiffness to local
-  // addPDeltaEffects(); // add P-∆ effects to local stiffness
+  addPDeltaEffects(); // add P-∆ effects to local stiffness
   _Kg[_qp] = _total_gl[_qp].transpose() * _Kl[_qp] * _total_gl[_qp];
 
   // std::cout << "**** Force vector global*** = \n";
-  // _Fg[_qp].print();
+  //_Fb[_qp].print();
   // std::cout << "**** Force vector local*** = \n";
   // _Fl[_qp].print();
   // std::cout << "**** Stiffness matrix global**** =\n";
-  // _Kg[_qp].print();
+  //_Kb[_qp].print();
 }

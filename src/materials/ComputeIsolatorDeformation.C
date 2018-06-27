@@ -45,7 +45,9 @@ ComputeIsolatorDeformation::ComputeIsolatorDeformation(const InputParameters & p
     _vel_num(3),
     _sD(getMaterialProperty<Real>("sd_ratio")),
     _basic_disp(declareProperty<ColumnMajorMatrix>("deformations")),
+    _basic_disp_old(declareProperty<ColumnMajorMatrix>("old deformations")),
     _basic_vel(declareProperty<ColumnMajorMatrix>("deformation_rates")),
+    _basic_vel_old(declareProperty<ColumnMajorMatrix>("old deformations rates")),
     _original_gl(declareProperty<ColumnMajorMatrix>("original_global_to_local_transformation")),
     _total_gl(declareProperty<ColumnMajorMatrix>("total_global_to_local_transformation")),
     _total_lb(declareProperty<ColumnMajorMatrix>("total_local_to_basic_transformation")),
@@ -154,22 +156,33 @@ ComputeIsolatorDeformation::computeDeformation()
   // Fetch the solution for the two end nodes at time t
   NonlinearSystemBase & nonlinear_sys = _fe_problem.getNonlinearSystemBase();
   const NumericVector<Number> & sol = *nonlinear_sys.currentSolution();
+  const NumericVector<Number> & sol_old = nonlinear_sys.solutionOld();
+
   AuxiliarySystem & aux = _fe_problem.getAuxiliarySystem();
   const NumericVector<Number> & aux_sol = *aux.currentSolution();
+  const NumericVector<Number> & aux_sol_old = aux.solutionOld();
 
   // Calculating global displacements (including rotations) and velocities (rotational velocity terms are zero)
   // 12 x 1 matrix with first six rows corresponding to node 0 dofs and next six to node 1 dofs
   ColumnMajorMatrix global_disp(12, 1);
   ColumnMajorMatrix global_vel(12, 1);
+  ColumnMajorMatrix global_disp_old(12, 1);
+  ColumnMajorMatrix global_vel_old(12, 1);
   for (unsigned int i = 0; i < _ndisp; ++i)
   {
     global_disp(i) = sol(node[0]->dof_number(nonlinear_sys.number(), _disp_num[i], 0)); // node 0 displacements
     global_disp(i + 3) = sol(node[0]->dof_number(nonlinear_sys.number(), _rot_num[i], 0)); // node 0 rotations
     global_disp(i + 6) = sol(node[1]->dof_number(nonlinear_sys.number(), _disp_num[i], 0)); // node 1 displacements
     global_disp(i + 9) = sol(node[1]->dof_number(nonlinear_sys.number(), _rot_num[i], 0));// node 1 rotations
+    global_disp_old(i) = sol_old(node[0]->dof_number(nonlinear_sys.number(), _disp_num[i], 0)); // node 0 displacements
+    global_disp_old(i + 3) = sol_old(node[0]->dof_number(nonlinear_sys.number(), _rot_num[i], 0)); // node 0 rotations
+    global_disp_old(i + 6) = sol_old(node[1]->dof_number(nonlinear_sys.number(), _disp_num[i], 0)); // node 1 displacements
+    global_disp_old(i + 9) = sol_old(node[1]->dof_number(nonlinear_sys.number(), _rot_num[i], 0));// node 1 rotations
     global_vel(i) = aux_sol(node[0]->dof_number(aux.number(), _vel_num[i], 0)); // node 0 velocities; rotational velocity terms remain zero
-    global_vel(i + 6) = aux_sol(node[1]->dof_number(aux.number(), _vel_num[i], 0)); // node 1 velocities; rotational velocity terms remain zero
-  }
+    global_vel(i + 6) = aux_sol_old(node[1]->dof_number(aux.number(), _vel_num[i], 0)); // node 1 velocities; rotational velocity terms remain zero
+    global_vel_old(i) = aux_sol_old(node[0]->dof_number(aux.number(), _vel_num[i], 0)); // node 0 velocities; rotational velocity terms remain zero
+    global_vel_old(i + 6) = aux_sol_old(node[1]->dof_number(aux.number(), _vel_num[i], 0)); // node 1 velocities; rotational velocity terms remain zero
+    }
 
   // // Convert isolator nodal displacements, velocities and rotations from global coordinate system to local coordinate system
   // // First, compute total rotation
@@ -181,12 +194,17 @@ ComputeIsolatorDeformation::computeDeformation()
   // basic system.
   _basic_disp[_qp].reshape(6, 1);
   _basic_vel[_qp].reshape(6, 1);
+  _basic_disp_old[_qp].reshape(6, 1);
+  _basic_vel_old[_qp].reshape(6, 1);
 
   _basic_disp[_qp] = _total_lb[_qp] * _total_gl[_qp] * global_disp;
   _basic_vel[_qp] = _total_lb[_qp] * _total_gl[_qp] * global_vel;
+  _basic_disp_old[_qp] = _total_lb[_qp] * _total_gl[_qp] * global_disp_old;
+  _basic_vel_old[_qp] = _total_lb[_qp] * _total_gl[_qp] * global_vel_old;
 
-    // std::cout << "total_gl\n";
-    // _total_gl[_qp].print();
+
+  // std::cout << "total_gl\n";
+  // _total_gl[_qp].print();
 
   // std::cout << "total_lb\n";
   // _total_lb[_qp].print();

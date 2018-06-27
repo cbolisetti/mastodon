@@ -1,9 +1,5 @@
-# Test for lead rubber isolator in Axial (compression and tension)
-
-#Loading conditions
-
-# i)  A ramp displacement in shear(y_direction)
-# ii) A cyclic displacement loading in axial (x_direction)
+# Test for lead rubber isolator
+# Axial direction
 
 [Mesh]
   type = GeneratedMesh
@@ -252,37 +248,34 @@
     boundary = right
     value = 0.0
   [../]
-  [./disp_x_1]
-    type = PresetDisplacement
-    boundary = right
-    function = history_disp_axial
-    variable = disp_x
-    beta = 0.25
-    acceleration = accel_x
-    velocity = vel_x
-  [../]
-  [./disp_y_1]
-    type = PresetDisplacement
-    boundary = right
-    function = history_disp_shear
-    variable = disp_y
-    beta = 0.25
-    acceleration = accel_y
-    velocity = vel_y
-  [../]
+[]
+
+ [NodalKernels]
+   [./force_x]
+    type = UserForcingFunctionNodalKernel
+     variable = disp_x
+     boundary = right
+     function = force_x
+     [../]
+  [./force_y]
+     type = UserForcingFunctionNodalKernel
+     variable = disp_y
+     boundary = right
+     function = force_y
+   [../]
 []
 
 [Functions]
-  [./history_disp_axial]
+  [./force_x]
     type = PiecewiseLinear
-    data_file = disp_axial_ct.csv
-    format = columns
+    x = '0.0 1.0 5.0'              # time
+    y = '0.0 -590156.0 -590156.0'  # force
   [../]
-  [./history_disp_shear]
+  [./force_y]
     type = PiecewiseLinear
-    x = '0.0 10.0'
-    y = '0.0 0.3048'
-    [../]
+    x = '0.0 1.0 5.0'              # time
+    y = '0.0 371188.0 371188.0'    # force
+  [../]
 []
 
 [Preconditioning]
@@ -299,9 +292,9 @@
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-8
   start_time = -0.02
-  end_time = 10
-  dt = 0.005
-  dtmin = 0.001
+  end_time = 5
+  dt = 0.001
+  dtmin = 0.0001
   timestep_tolerance = 1e-6
 []
 
@@ -388,7 +381,7 @@
     kc = 20
     phi_m = 0.75
     ac = 1
-    cd = 0
+    cd = 128000
     gamma = 0.5
     beta = 0.25
     k_steel = 50
@@ -414,11 +407,6 @@
     nodeid = 1
     variable = vel_x
   [../]
-  [./accel_x]
-    type = NodalVariableValue
-    nodeid = 1
-    variable = accel_x
-  [../]
   [./reaction_x]
     type = NodalSum
     variable = reaction_x
@@ -434,11 +422,6 @@
     nodeid = 1
     variable = vel_y
   [../]
-  [./accel_y]
-    type = NodalVariableValue
-    nodeid = 1
-    variable = accel_y
-  [../]
   [./reaction_y]
     type = NodalSum
     variable = reaction_y
@@ -448,16 +431,6 @@
     type = NodalVariableValue
     nodeid = 1
     variable = disp_z
-  [../]
-  [./vel_z]
-    type = NodalVariableValue
-    nodeid = 1
-    variable = vel_z
-  [../]
-  [./accel_z]
-    type = NodalVariableValue
-    nodeid = 1
-    variable = accel_z
   [../]
   [./reaction_z]
     type = NodalSum

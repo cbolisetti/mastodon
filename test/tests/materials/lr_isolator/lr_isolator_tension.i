@@ -1,9 +1,8 @@
-# Test for lead rubber isolator in Axial (compression and tension)
+# Test for lead rubber isolator in Axial (only tension)
 
 #Loading conditions
 
-# i)  A ramp displacement in shear(y_direction)
-# ii) A cyclic displacement loading in axial (x_direction)
+# i) A cyclic displacement loading in axial tension (x_direction)
 
 [Mesh]
   type = GeneratedMesh
@@ -255,35 +254,21 @@
   [./disp_x_1]
     type = PresetDisplacement
     boundary = right
-    function = history_disp_axial
+    function = history_disp_tension
     variable = disp_x
     beta = 0.25
     acceleration = accel_x
     velocity = vel_x
   [../]
-  [./disp_y_1]
-    type = PresetDisplacement
-    boundary = right
-    function = history_disp_shear
-    variable = disp_y
-    beta = 0.25
-    acceleration = accel_y
-    velocity = vel_y
-  [../]
 []
 
 [Functions]
-  [./history_disp_axial]
+  [./history_disp_tension]
     type = PiecewiseLinear
-    data_file = disp_axial_ct.csv
+    data_file = disp_tension.csv
     format = columns
-  [../]
-  [./history_disp_shear]
-    type = PiecewiseLinear
-    x = '0.0 10.0'
-    y = '0.0 0.3048'
     [../]
-[]
+  []
 
 [Preconditioning]
   [./smp]
@@ -299,8 +284,8 @@
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-8
   start_time = -0.02
-  end_time = 10
-  dt = 0.005
+  end_time = 11.26
+  dt = 0.01
   dtmin = 0.001
   timestep_tolerance = 1e-6
 []
@@ -375,7 +360,7 @@
   [./elasticity]
     type = ComputeLRIsolatorElasticity
     block = 0
-    fy = 207160
+    fy = 207155
     alpha = 0.03812
     G_rubber = 0.87e6
     K_rubber = 2e9
