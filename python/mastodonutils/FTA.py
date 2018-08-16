@@ -605,7 +605,7 @@ class Quantification(object):
                 bnodes[name] = bnode
         return bnodes
 
-################## Minimal Cut Set Probabilites and Importance Measues ###################
+    ################## Minimal Cut Set Probabilites and Importance Measues ###################
 
     @staticmethod
     def __MCprob(cutsets):
@@ -632,7 +632,7 @@ class Quantification(object):
             im.append([100*x/y for x, y in zip(mc_prob[i], top_ub)])
         return im
 
-################## Exact probability calculation ##################
+    ################## Exact probability calculation ##################
     @staticmethod
     def __Min_max(cutsets, mcprob):
         """
@@ -677,9 +677,9 @@ class Quantification(object):
         sum_all_terms = [sum(j) for j in zip(*sum_all_terms)]
         return sum_all_terms
 
-################## Basic Event Importance Measures ###################
-### Ratio Importance    : Fussel-Vesely Importance, Risk Reduction Ratio, Risk Increase Ratio
-### Interval Importance : Risk Reduction Interval,Risk Increase Interval, Birnbaum Importance
+    ################## Basic Event Importance Measures ###################
+    ### Ratio Importance    : Fussel-Vesely Importance, Risk Reduction Ratio, Risk Increase Ratio
+    ### Interval Importance : Risk Reduction Interval,Risk Increase Interval, Birnbaum Importance
 
     @staticmethod
     def __BEim(mcsets, mc_prob, top_ub, bnodes, bas_events, mcprob, int_evnt,
@@ -781,7 +781,7 @@ class Quantification(object):
             im_stat.append(a)
         return im_stat
 
-##############################################################################
+    ##############################################################################
 
     @staticmethod
     def __Intermediate_event(dep_events, gate):
