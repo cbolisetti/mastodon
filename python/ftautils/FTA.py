@@ -182,9 +182,11 @@ class Event(object):
 
 class FaultTree(object):
     """
-    Creates a fault tree and computes minimal cut sets given a events with type and dependency.
+    Creates a fault tree and computes minimal cut sets given a events with type and
+    dependency.
 
-    The minimal cut sets are computed using the MOCUS algorithm as defined by:
+    The minimal cut sets are computed using the MOCUS algorithm described in the document
+    below.
     https://www.nrc.gov/docs/ML1119/ML11195A299.pdf
 
     Inputs:
