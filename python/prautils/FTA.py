@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 Provides FaultTree class for creating fault trees and minimum cutsets, given the logic of a
 fault tree and Quantification class for calculating minimal cutset probabilities and system
@@ -420,8 +421,11 @@ class Quantification(object):
                     Can input any integer between 0 and (2**32 - 1).
     """
 
-    def __init__(self, logic, bas_events, analysis='Fragility', hazard=None, IM=None,
+    def __init__(self, name, logic, basic_events, analysis='Default', hazard=None, IM=None,
                  nbins=15, uncertainty=False, nsamp=1, seed=None):
+
+        # name
+        self.__name = name
 
         # create an object 'logic' of class 'FaultTree' by inputting the logic of the fault tree
         self.__logic = FaultTree(logic)
@@ -429,7 +433,7 @@ class Quantification(object):
         self.__mcsets = self.__logic.mocus
 
         # read basic events file
-        self.__bas_events = self.__readFile(bas_events)
+        self.__bas_events = self.__readFile(basic_events)
         # Type of Analysis
         self.__antype = analysis
 
@@ -474,7 +478,7 @@ class Quantification(object):
                 self.__lnparameters, self.__im
             )
 
-            # dictionary of basic events risk (convoluting fragility and hazard)
+            # dictionary of basic events risk (convolving fragility and hazard)
             self.__bnodes = self.__risk(self.__bnodes_frag, self.__haz_freq)
         else:
             self.__im = None
@@ -512,9 +516,14 @@ class Quantification(object):
 
         # Results to csv format
         self.__results(
-            self.__top_upper_bound, self.__mcsets, self.__mc_prob, self.__mc_im,
+            self.__name, self.__top_upper_bound, self.__mcsets, self.__mc_prob, self.__mc_im,
             self.__top_cal, self.__bas_events, self.__count, self.__bnodes, self.__be_im
         )
+
+    @property
+    def name(self):
+        """Return the name attribute"""
+        return self.__name
 
     @property
     def logic(self):
@@ -584,10 +593,22 @@ class Quantification(object):
         """Return the basic event difference importance measures"""
         return (self.__be_im['BE_rri'], self.__be_im['BE_rii'], self.__be_im['BE_bi'])
 
+    def __str__(self):
+        """
+        Return the name of the class
+        """
+        return str(self.__name)
+
+    def __repr__(self):
+        """
+        Display the name of the class
+        """
+        return self.__name
+
     @staticmethod
     def __BEprob(bas_events, antype, nodes, intmes, nsamp, uncert, seed):
         """
-        Function assigns distribution type for Basic_event Nodes and calaulates
+        Function assigns distribution type for Basic_event Nodes and calculates
         failure probabilities of basic events
         """
         bnodes = dict()
@@ -599,7 +620,7 @@ class Quantification(object):
                 bnodes[name] = bnode
             else:
                 import warnings
-                warnings.warn("Basic event is not used in logic of the fault tree")
+                warnings.warn("Basic event is not used in logic of the fault tree: " + name)
 
                 bnode = Event(name)
                 bnode.dist = (dist, antype)
@@ -925,18 +946,28 @@ class Quantification(object):
         """
         # calculate TOP event fragility using min-max approach
         top_frag = min_max(mcsets, mcprob)
+        print mcsets
+        print top_frag
+        print mcprob
+        print min_max
         # lognormal parameters of TOP Event fragility
         lnpar = lnparameters(intmes, top_frag)
         return top_frag, lnpar[0]
 
     @staticmethod
-    def __results(top_upper_bound, mcsets, mc_prob, mc_im, top_cal, bas_events, count,
+    def __results(name, top_upper_bound, mcsets, mc_prob, mc_im, top_cal, bas_events, count,
                   bnodes, be_im):
         """
         Function for writing results in csv format.
         """
+        # Create a folder for results
+        if not os.path.exists(name+'_results/'):
+            os.mkdir(name+'_results/')
+
+        # Writing results into separate csv files
         import csv
-        with open('Cut Sets.csv', 'w') as f1:
+        dirname = name + '_results/'
+        with open(dirname+'cutsets.csv', 'w') as f1:
             writer = csv.writer(f1, delimiter=',', lineterminator='\n',)
             writer.writerows([['Cut Sets', 'Prob/Freq', 'IM (%)'],
                               ['Total', top_upper_bound[0], '100']])
@@ -944,7 +975,7 @@ class Quantification(object):
                 writer.writerow([str(list(mcsets[i])), mc_prob[i][0],
                                  mc_im[i][0]])
 
-        with open('Top Event.csv', 'w') as f2:
+        with open(dirname+'top_event.csv', 'w') as f2:
             writer = csv.writer(f2, delimiter=',', lineterminator='\n',)
             writer.writerows([['Quantification Method', 'Prob/Freq', 'Mean',
                                'Median', '5th', '95th', 'SD']])
@@ -953,7 +984,7 @@ class Quantification(object):
                                 for k in range(0, len(top_cal[keyt][0]))]
                 writer.writerow(row)
 
-        with open('Importance Measures.csv', 'w') as f3:
+        with open(dirname+'importance_measures.csv', 'w') as f3:
             writer = csv.writer(f3, delimiter=',', lineterminator='\n',)
             writer.writerows([['Basic Event', 'Count', 'Prob', 'FV', 'RRR',
                                'RIR', 'RRI', 'RII', 'BI']])
@@ -962,9 +993,9 @@ class Quantification(object):
                     [bnodes[keyb[0]].prob[0]] + [be_im[key][i][0] for key in be_im]
                 writer.writerow(row)
 
-        wname = ['FV', 'RRR', 'RIR', 'RRI', 'RII', 'BI']
+        wname = ['fv', 'rrr', 'rir', 'rri', 'rii', 'bi']
         for i, key in enumerate(be_im):
-            with open(wname[i]+'.csv', 'w') as f4:
+            with open(dirname+wname[i]+'.csv', 'w') as f4:
                 writer = csv.writer(f4, delimiter=',', lineterminator='\n',)
                 writer.writerows([['Basic Event', 'PE', 'Mean', 'Median', '5th', '95th', 'SD']])
                 for j, keyb in enumerate(bas_events):
