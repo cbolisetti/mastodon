@@ -1,0 +1,5 @@
+PumpF,OR,SPumpF,PPumpF
+PPumpF,OR,SDistPanelF,PDistPanelF,BlockWallF
+BlockWallF,OR,SBlockWallF
+PDistPanelF,AND,SSWGearF,PBatF
+PBatF,OR,SBatF

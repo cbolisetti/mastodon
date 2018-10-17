@@ -421,7 +421,7 @@ class Quantification(object):
                     Can input any integer between 0 and (2**32 - 1).
     """
 
-    def __init__(self, name, logic, basic_events, analysis='Default', hazard=None, IM=None,
+    def __init__(self, name, logic, basic_events, analysis='default', hazard=None, IM=None,
                  nbins=15, uncertainty=False, nsamp=1, seed=None):
 
         # name
@@ -444,7 +444,7 @@ class Quantification(object):
         # set seed for the uncertainty Analysis
         self.__seed = self.__parValue(seed, 'seed')
 
-        if self.__antype == "Fragility":
+        if self.__antype.lower() == "fragility":
             # read Hazard curve
             if hazard is None:
                 self.__hazard = [[0.0608, 0.01], [0.2124, 0.001], [0.4, 0.0001],
@@ -475,8 +475,7 @@ class Quantification(object):
             # Top event fragility (lognormal parameters and plot)
             self.__topfragility, self.__ln = self.__TOPfragility(
                 self.__Min_max, self.__mcsets, self.__MCprob,
-                self.__lnparameters, self.__im
-            )
+                self.__lnparameters, self.__im)
 
             # dictionary of basic events risk (convolving fragility and hazard)
             self.__bnodes = self.__risk(self.__bnodes_frag, self.__haz_freq)
@@ -727,7 +726,7 @@ class Quantification(object):
             for j in range(0, len(mcsets)):
                 if key[0] in list(mcsets[j]):
                     temp.append(j)
-            # get the index position of basic event in mimimal cut sets
+            # get the index position of basic event in minimal cut sets
             be_index.append(temp)
 
             # F1: minimal cut set upper bound evaluated with basic event probability set to one
@@ -838,6 +837,8 @@ class Quantification(object):
         """
         from scipy.optimize import curve_fit
 
+        # print intmes
+        # print fragility
         (logpara, logcov) = curve_fit(Quantification.__logcdf, intmes, fragility)
         return logpara, logcov
 
@@ -946,10 +947,6 @@ class Quantification(object):
         """
         # calculate TOP event fragility using min-max approach
         top_frag = min_max(mcsets, mcprob)
-        print mcsets
-        print top_frag
-        print mcprob
-        print min_max
         # lognormal parameters of TOP Event fragility
         lnpar = lnparameters(intmes, top_frag)
         return top_frag, lnpar[0]
