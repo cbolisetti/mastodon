@@ -168,6 +168,7 @@ validParams<ISoilAction>()
       "density",
       "Vector of density values that map one-to-one with the number "
       "'layer_ids' parameter.");
+  params.addParam<bool>("central_difference", false, "Switch for Central Difference time integration.");
   return params;
 }
 
@@ -251,6 +252,8 @@ ISoilAction::act()
     params.set<std::vector<SubdomainName>>("block") = block;
     params.set<std::vector<VariableName>>("displacements") = displacements;
     // params.set<bool>("stateful_displacements") = true; // deprecated
+    if (getParam<bool>("central_difference"))
+      params.set<bool>("central_difference") = true;
     _problem->addMaterial("ComputeIncrementalSmallStrain", unique_strain_name, params);
   }
   else
@@ -262,6 +265,8 @@ ISoilAction::act()
     params.set<std::vector<SubdomainName>>("block") = block;
     params.set<std::vector<VariableName>>("displacements") = displacements;
     // params.set<bool>("stateful_displacements") = true; // deprecated
+    if (getParam<bool>("central_difference"))
+      params.set<bool>("central_difference") = true;
     _problem->addMaterial("ComputeFiniteStrain", unique_strain_name, params);
   }
 
