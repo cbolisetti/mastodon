@@ -19,12 +19,6 @@
   zmax = 1
 []
 
-
-[GlobalParams]
-  displacements = 'disp_x disp_y disp_z'
-  use_displaced_mesh = false
-[]
-
 [Variables]
   [./disp_x]
   [../]
@@ -104,7 +98,7 @@
 [Kernels]
   [./DynamicTensorMechanics]
     displacements = 'disp_x disp_y disp_z'
-    zeta = 0.00006366
+    # zeta = 0.00006366
   [../]
   [./inertia_x]
     type = InertialForce
@@ -289,28 +283,43 @@
     boundary = 0
     value = 0.0
   [../]
-  [./Periodic]
-    [./x_dir]
-      variable = 'disp_x disp_y disp_z'
-      primary = '4'
-      secondary = '2'
-      translation = '1.0 0.0 0.0'
-    [../]
-    [./y_dir]
-      variable = 'disp_x disp_y disp_z'
-      primary = '1'
-      secondary = '3'
-      translation = '0.0 1.0 0.0'
-    [../]
-  [../]
-  [./top_x]
-    type = PresetDisplacement
-    boundary = 5
+  # [./Periodic]
+  #   [./x_dir]
+  #     variable = 'disp_x disp_y disp_z'
+  #     primary = '4'
+  #     secondary = '2'
+  #     translation = '1.0 0.0 0.0'
+  #   [../]
+  #   [./y_dir]
+  #     variable = 'disp_x disp_y disp_z'
+  #     primary = '1'
+  #     secondary = '3'
+  #     translation = '0.0 1.0 0.0'
+  #   [../]
+  # [../]
+  # [./top_x]
+  #   type = FunctionDirichletBC
+  #   boundary = 5
+  #   variable = disp_x
+  #   # beta = 0.25
+  #   # velocity = vel_x
+  #   # acceleration = accel_x
+  #   function = top_disp
+  # [../]
+[]
+
+[NodalKernels]
+  [./top_force_x]
+    type = UserForcingFunctionNodalKernel
+    boundary = top
+    function = top_force
     variable = disp_x
-    beta = 0.25
-    velocity = vel_x
-    acceleration = accel_x
-    function = top_disp
+  [../]
+  [./top_force_y]
+    type = UserForcingFunctionNodalKernel
+    boundary = top
+    function = top_force
+    variable = disp_y
   [../]
 []
 
@@ -320,25 +329,77 @@
     data_file = Displacement2.csv
     format = columns
   [../]
+  [./top_force]
+    type = PiecewiseLinear
+    x = '0.0 1.0 2.0  3.0 4.0'
+    y = '0.0 1.0 0.0 -1.0 0.0'
+    scale_factor = 4e3
+  [../]
 []
 
 [Materials]
-  [./I_Soil]
-    [./soil_1]
-      soil_type = 'darendeli'
-      layer_variable = layer_id
-      layer_ids = '0'
-      over_consolidation_ratio = '1'
-      plasticity_index = '0'
-      initial_shear_modulus = '20000'
-      number_of_points = 10
-      poissons_ratio = '0.3'
-      block = 0
-      initial_soil_stress = '-4.204286 0 0  0 -4.204286 0  0 0 -9.810'
-      density = '2'
-      p_ref = '6.07286'
-      central_difference = true
-    [../]
+  # [./I_Soil]
+  #   [./soil_1]
+  #     soil_type = 'darendeli'
+  #     layer_variable = layer_id
+  #     layer_ids = '0'
+  #     over_consolidation_ratio = '1'
+  #     plasticity_index = '0'
+  #     initial_shear_modulus = '20000'
+  #     number_of_points = 10
+  #     poissons_ratio = '0.3'
+  #     block = 0
+  #     initial_soil_stress = '-4.204286 0 0  0 -4.204286 0  0 0 -9.810'
+  #     density = '2'
+  #     p_ref = '6.07286'
+  #   [../]
+  # [../]
+  # [./ISoilElasticity]
+  #   type = ComputeISoilStress
+  #   soil_type = 'darendeli'
+  #   layer_ids = layer_id
+  #   layer_ids = '0'
+  #   over_consolidation_ratio = '1'
+  #   plasticity_index = '0'
+  #   initial_shear_modulus = '20000'
+  #   number_of_points = 10
+  #   poissons_ratio = '0.3'
+  #   block = 0
+  #   initial_soil_stress = '-4.204286 0 0  0 -4.204286 0  0 0 -9.810'
+  #   p_ref = '6.07286'
+  # [../]
+  # [./Isoil_elasticitytensor]
+  #   type = ComputeIsotropicElasticityTensorSoil
+  #   block = '0'
+  #   elastic_modulus = '1.0'
+  #   poissons_ratio = '0.3'
+  #   density = '2'
+  #   wave_speed_calculation = false
+  #   layer_ids = '0'
+  #   layer_variable = layer_id
+  # [../]
+  [./elasticity_tensor_block]
+    type = ComputeIsotropicElasticityTensor
+    youngs_modulus = 1e6
+    poissons_ratio = 0.25
+    block = 0
+  [../]
+  [./stress_block]
+    type = ComputeFiniteStrainElasticStress
+    # store_stress_old = true
+    block = 0
+  [../]
+  [./strain_block]
+    type = ComputeIncrementalSmallStrain
+    block = 0
+    displacements = 'disp_x disp_y disp_z'
+    central_difference = true
+  [../]
+  [./density]
+    type = GenericConstantMaterial
+    block = 0
+    prop_names = density
+    prop_values = 1e4
   [../]
 []
 
@@ -351,17 +412,17 @@
 
 [Executioner]
   type = Transient
-  solve_type = PJFNK
-  nl_abs_tol = 1e-11
-  nl_rel_tol = 1e-11
+  # solve_type = PJFNK
+  # nl_abs_tol = 1e-11
+  # nl_rel_tol = 1e-11
+  # timestep_tolerance = 1e-6
+  # petsc_options = '-snes_ksp_ew'
+  # petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type -pc_hypre_boomeramg_max_iter'
+  # petsc_options_value = '201                hypre    boomeramg      4'
+  # line_search = 'none'
   start_time = 0
   end_time = 8
-  dt = 0.005 # should be less than 0.9 * 4H/Vs
-  timestep_tolerance = 1e-6
-  petsc_options = '-snes_ksp_ew'
-  petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type -pc_hypre_boomeramg_max_iter'
-  petsc_options_value = '201                hypre    boomeramg      4'
-  line_search = 'none'
+  dt = 0.005
   [./TimeIntegrator]
     type = CentralDifference
   [../]

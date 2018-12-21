@@ -19,6 +19,11 @@
   zmax = 1
 []
 
+[GlobalParams]
+#   displacements = 'disp_x disp_y disp_z'
+  # use_displaced_mesh = false
+[]
+
 [Variables]
   [./disp_x]
   [../]
@@ -89,43 +94,43 @@
     order = CONSTANT
     family = MONOMIAL
   [../]
-  # [./layer_id]
-  #   order = CONSTANT
-  #   family = MONOMIAL
-  # [../]
+  [./layer_id]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
 []
 
 [Kernels]
   [./DynamicTensorMechanics]
     displacements = 'disp_x disp_y disp_z'
-    # zeta = 0.00006366
+    zeta = 0.00006366
   [../]
   [./inertia_x]
     type = InertialForce
     variable = disp_x
-    # velocity = vel_x
-    # acceleration = accel_x
-    # beta = 0.25
-    # gamma = 0.5
-    # eta = 7.854
+    velocity = vel_x
+    acceleration = accel_x
+    beta = 0.25
+    gamma = 0.5
+    eta = 7.854
   [../]
   [./inertia_y]
     type = InertialForce
     variable = disp_y
-    # velocity = vel_y
-    # acceleration = accel_y
-    # beta = 0.25
-    # gamma = 0.5
-    # eta = 7.854
+    velocity = vel_y
+    acceleration = accel_y
+    beta = 0.25
+    gamma = 0.5
+    eta = 7.854
   [../]
   [./inertia_z]
     type = InertialForce
     variable = disp_z
-    # velocity = vel_z
-    # acceleration = accel_z
-    # beta = 0.25
-    # gamma = 0.5
-    # eta = 7.854
+    velocity = vel_z
+    acceleration = accel_z
+    beta = 0.25
+    gamma = 0.5
+    eta = 7.854
   [../]
   [./gravity]
     type = Gravity
@@ -136,37 +141,49 @@
 
 [AuxKernels]
   [./accel_x]
-    type = TestNewmarkTI
-    displacement = disp_x
+    type = NewmarkAccelAux
     variable = accel_x
-    first = false
-  [../]
-  [./accel_y]
-    type = TestNewmarkTI
-    displacement = disp_y
-    variable = accel_y
-    first = false
-  [../]
-  [./accel_z]
-    type = TestNewmarkTI
-    displacement = disp_z
-    variable = accel_z
-    first = false
+    displacement = disp_x
+    velocity = vel_x
+    beta = 0.25
+    execute_on = timestep_end
   [../]
   [./vel_x]
-    type = TestNewmarkTI
-    displacement = disp_x
+    type = NewmarkVelAux
     variable = vel_x
+    acceleration = accel_x
+    gamma = 0.5
+    execute_on = timestep_end
+  [../]
+  [./accel_y]
+    type = NewmarkAccelAux
+    variable = accel_y
+    displacement = disp_y
+    velocity = vel_y
+    beta = 0.25
+    execute_on = timestep_end
   [../]
   [./vel_y]
-    type = TestNewmarkTI
-    displacement = disp_y
+    type = NewmarkVelAux
     variable = vel_y
+    acceleration = accel_y
+    gamma = 0.5
+    execute_on = timestep_end
+  [../]
+  [./accel_z]
+    type = NewmarkAccelAux
+    variable = accel_z
+    displacement = disp_z
+    velocity = vel_z
+    beta = 0.25
+    execute_on = timestep_end
   [../]
   [./vel_z]
-    type = TestNewmarkTI
-    displacement = disp_z
+    type = NewmarkVelAux
     variable = vel_z
+    acceleration = accel_z
+    gamma = 0.5
+    execute_on = timestep_end
   [../]
   [./stress_xy]
     type = RankTwoAux
@@ -252,13 +269,13 @@
     index_i = 2
     index_j = 2
   [../]
-  # [./layer]
-  #   type = UniformLayerAuxKernel
-  #   variable = layer_id
-  #   interfaces = '2.0'
-  #   direction = '0 0 1'
-  #   execute_on = initial
-  # [../]
+  [./layer]
+    type = UniformLayerAuxKernel
+    variable = layer_id
+    interfaces = '2.0'
+    direction = '0 0 1'
+    execute_on = initial
+  [../]
 []
 
 [BCs]
@@ -305,38 +322,18 @@
   [../]
 []
 
-[NodalKernels]
-  # [./top_force_x]
-  #   type = UserForcingFunctionNodalKernel
-  #   boundary = top
-  #   function = top_force
-  #   variable = disp_x
-  # [../]
-  # [./top_force_y]
-  #   type = UserForcingFunctionNodalKernel
-  #   boundary = top
-  #   function = top_force
-  #   variable = disp_y
-  # [../]
-[]
-
 [Functions]
   [./top_disp]
     type = PiecewiseLinear
     data_file = Displacement2.csv
     format = columns
   [../]
-  [./top_force]
-    type = PiecewiseLinear
-    x = '0.0 1.0 2.0  3.0 4.0'
-    y = '0.0 1.0 0.0 -1.0 0.0'
-    scale_factor = 4e3
-  [../]
 []
 
 [Materials]
   # [./I_Soil]
   #   [./soil_1]
+  #     displacements = 'disp_x disp_y disp_z'
   #     soil_type = 'darendeli'
   #     layer_variable = layer_id
   #     layer_ids = '0'
@@ -354,7 +351,7 @@
   # [./ISoilElasticity]
   #   type = ComputeISoilStress
   #   soil_type = 'darendeli'
-  #   layer_ids = layer_id
+  #   layer_variable = layer_id
   #   layer_ids = '0'
   #   over_consolidation_ratio = '1'
   #   plasticity_index = '0'
@@ -411,20 +408,14 @@
   solve_type = PJFNK
   nl_abs_tol = 1e-11
   nl_rel_tol = 1e-11
+  start_time = 0
+  end_time = 8
+  dt = 0.01
   timestep_tolerance = 1e-6
-  dtmin = 1e-4
   petsc_options = '-snes_ksp_ew'
   petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type -pc_hypre_boomeramg_max_iter'
   petsc_options_value = '201                hypre    boomeramg      4'
   line_search = 'none'
-  start_time = 0
-  end_time = 8
-  dt = 0.005
-  [./TimeIntegrator]
-    type = NewmarkBeta
-    beta = 0.25
-    gamma = 0.5
-  [../]
 []
 
 [Postprocessors]
@@ -539,7 +530,7 @@
 []
 
 [Outputs]
-  exodus = false
+  exodus = true
   csv = true
   perf_graph = false
 []
