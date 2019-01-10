@@ -38,6 +38,14 @@
   [../]
   [./accel_z]
   [../]
+  [./strain_zx]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./stress_zx]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
   [./layer_id]
     order = CONSTANT
     family = MONOMIAL
@@ -47,7 +55,7 @@
 [Kernels]
   [./DynamicTensorMechanics]
     displacements = 'disp_x disp_y disp_z'
-    zeta = 0.000781
+    # zeta = 0.000781
   [../]
   [./inertia_x]
     type = InertialForce
@@ -56,7 +64,7 @@
     acceleration = accel_x
     beta = 0.25
     gamma = 0.5
-    eta = 0.64026
+    # eta = 0.64026
   [../]
   [./inertia_y]
     type = InertialForce
@@ -65,7 +73,7 @@
     acceleration = accel_y
     beta = 0.25
     gamma = 0.5
-    eta = 0.64026
+    # eta = 0.64026
   [../]
   [./inertia_z]
     type = InertialForce
@@ -74,7 +82,7 @@
     acceleration = accel_z
     beta = 0.25
     gamma = 0.5
-    eta = 0.64026
+    # eta = 0.64026
   [../]
   [./gravity]
     type = Gravity
@@ -129,6 +137,20 @@
     gamma = 0.5
     execute_on = timestep_end
   [../]
+  [./strain_zx]
+    type = RankTwoAux
+    rank_two_tensor = total_strain
+    variable = strain_zx
+    index_i = 0
+    index_j = 2
+  [../]
+  [./stress_zx]
+    type = RankTwoAux
+    rank_two_tensor = stress
+    variable = stress_zx
+    index_i = 0
+    index_j = 2
+  [../]
   [./layer_id]
      type = UniformLayerAuxKernel
      variable = layer_id
@@ -152,9 +174,9 @@
     value = 0.0
   [../]
   [./bottom_accel]
-    type = PresetAcceleration
+    type = PresetDisplacement
     boundary = 'back'
-    function = accel_bottom
+    function = disp_bottom
     variable = 'disp_x'
     beta = 0.25
     acceleration = 'accel_x'
@@ -177,10 +199,15 @@
 []
 
 [Functions]
-  [./accel_bottom]
-     type = PiecewiseLinear
-     data_file = chichi_bc_mpss_xp20.csv
-     format = 'columns'
+  # [./disp_bottom]
+  #    type = PiecewiseLinear
+  #    data_file = displacement.csv
+  #    format = 'columns'
+  #    scale_factor = 9.81
+  # [../]
+  [./disp_bottom]
+     type = ParsedFunction
+     value = 0.003*t*t*sin(2*pi*t/0.33)*cos(2*pi*t/0.1)
   [../]
   [./initial_zz]
     type = ParsedFunction
@@ -201,7 +228,7 @@
        initial_soil_stress = 'initial_xx 0 0 0 initial_xx 0 0 0 initial_zz'
        poissons_ratio = '0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3 0.3'
        soil_type = 'gqh'
-       number_of_points = 100
+       number_of_points = 30
        ### GQ/H ####
        initial_shear_modulus = '125000000 118098000 111392000 103968000 96800000 89888000 83232000 76832000 70688000 64800000 59168000 53792000 48672000 43808000 39200000 34848000 30752000 26912000 23328000 20000000'
        theta_1 = '-6.66 -6.86 -7.06 -7.35 -7.65 -7.95 -8.3 -8.61 -8.95 -9.3 -9.61 -9.92 -10.0 -10.0 -10.0 -10.0 -10.0 -9.31 -7.17 -5.54'
@@ -236,7 +263,7 @@
   l_tol = 1e-6
   l_max_its = 50
   start_time = 0
-  end_time = 85.4
+  end_time = 4
   dt = 0.001
   timestep_tolerance = 1e-6
   petsc_options = '-snes_ksp_ew'
@@ -246,6 +273,16 @@
 []
 
 [Postprocessors]
+  [./dispx_top]
+    type = PointValue
+    point = '0.0 0.0 20.0'
+    variable = disp_x
+  [../]
+  [./dispx_bot]
+    type = PointValue
+    point = '0.0 0.0 0.0'
+    variable = disp_x
+  [../]
   [./accelx_top]
     type = PointValue
     point = '0.0 0.0 20.0'
@@ -266,16 +303,26 @@
     point = '0.0 0.0 0.0'
     variable = accel_x
   [../]
+  [./strain_zx_el]
+    type = ElementalVariableValue
+    variable = strain_zx
+    elementid = 0
+  [../]
+  [./stress_zx_el]
+    type = ElementalVariableValue
+    variable = stress_zx
+    elementid = 0
+  [../]
 []
 
 [Outputs]
   csv = true
   exodus = true
   perf_graph = true
-  print_linear_residuals = false
-  [./screen]
-    type = Console
-    max_rows = 1
-    interval = 1000
-  [../]
+  # print_linear_residuals = false
+  # [./screen]
+  #   type = Console
+  #   max_rows = 1
+  #   interval = 1000
+  # [../]
 []

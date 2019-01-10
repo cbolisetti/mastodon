@@ -1,8 +1,0 @@
-[Tests]
-  [./ex01]
-    type = RunApp
-    input = HYS_darendeli.i
-    method = opt
-    check_input = True
-  [../]
-[../]

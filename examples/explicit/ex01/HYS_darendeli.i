@@ -19,9 +19,10 @@
   zmax = 1
 []
 
+
 [GlobalParams]
-#   displacements = 'disp_x disp_y disp_z'
-  # use_displaced_mesh = false
+  displacements = 'disp_x disp_y disp_z'
+  use_displaced_mesh = false
 []
 
 [Variables]
@@ -34,18 +35,18 @@
 []
 
 [AuxVariables]
-  [./vel_x]
-  [../]
-  [./accel_x]
-  [../]
-  [./vel_y]
-  [../]
-  [./accel_y]
-  [../]
-  [./vel_z]
-  [../]
-  [./accel_z]
-  [../]
+  # [./vel_x]
+  # [../]
+  # [./accel_x]
+  # [../]
+  # [./vel_y]
+  # [../]
+  # [./accel_y]
+  # [../]
+  # [./vel_z]
+  # [../]
+  # [./accel_z]
+  # [../]
   [./stress_xy]
     order = CONSTANT
     family = MONOMIAL
@@ -103,34 +104,37 @@
 [Kernels]
   [./DynamicTensorMechanics]
     displacements = 'disp_x disp_y disp_z'
-    zeta = 0.00006366
+    # zeta = 0.00006366
   [../]
   [./inertia_x]
     type = InertialForce
     variable = disp_x
-    velocity = vel_x
-    acceleration = accel_x
-    beta = 0.25
-    gamma = 0.5
-    eta = 7.854
+    central_difference = true
+    # velocity = vel_x
+    # acceleration = accel_x
+    # beta = 0.25
+    # gamma = 0.5
+    # eta = 7.854
   [../]
   [./inertia_y]
     type = InertialForce
     variable = disp_y
-    velocity = vel_y
-    acceleration = accel_y
-    beta = 0.25
-    gamma = 0.5
-    eta = 7.854
+    central_difference = true
+    # velocity = vel_y
+    # acceleration = accel_y
+    # beta = 0.25
+    # gamma = 0.5
+    # eta = 7.854
   [../]
   [./inertia_z]
     type = InertialForce
     variable = disp_z
-    velocity = vel_z
-    acceleration = accel_z
-    beta = 0.25
-    gamma = 0.5
-    eta = 7.854
+    central_difference = true
+    # velocity = vel_z
+    # acceleration = accel_z
+    # beta = 0.25
+    # gamma = 0.5
+    # eta = 7.854
   [../]
   [./gravity]
     type = Gravity
@@ -140,51 +144,51 @@
 []
 
 [AuxKernels]
-  [./accel_x]
-    type = NewmarkAccelAux
-    variable = accel_x
-    displacement = disp_x
-    velocity = vel_x
-    beta = 0.25
-    execute_on = timestep_end
-  [../]
-  [./vel_x]
-    type = NewmarkVelAux
-    variable = vel_x
-    acceleration = accel_x
-    gamma = 0.5
-    execute_on = timestep_end
-  [../]
-  [./accel_y]
-    type = NewmarkAccelAux
-    variable = accel_y
-    displacement = disp_y
-    velocity = vel_y
-    beta = 0.25
-    execute_on = timestep_end
-  [../]
-  [./vel_y]
-    type = NewmarkVelAux
-    variable = vel_y
-    acceleration = accel_y
-    gamma = 0.5
-    execute_on = timestep_end
-  [../]
-  [./accel_z]
-    type = NewmarkAccelAux
-    variable = accel_z
-    displacement = disp_z
-    velocity = vel_z
-    beta = 0.25
-    execute_on = timestep_end
-  [../]
-  [./vel_z]
-    type = NewmarkVelAux
-    variable = vel_z
-    acceleration = accel_z
-    gamma = 0.5
-    execute_on = timestep_end
-  [../]
+  # [./accel_x]
+  #   type = NewmarkAccelAux
+  #   variable = accel_x
+  #   displacement = disp_x
+  #   velocity = vel_x
+  #   beta = 0.25
+  #   execute_on = timestep_end
+  # [../]
+  # [./vel_x]
+  #   type = NewmarkVelAux
+  #   variable = vel_x
+  #   acceleration = accel_x
+  #   gamma = 0.5
+  #   execute_on = timestep_end
+  # [../]
+  # [./accel_y]
+  #   type = NewmarkAccelAux
+  #   variable = accel_y
+  #   displacement = disp_y
+  #   velocity = vel_y
+  #   beta = 0.25
+  #   execute_on = timestep_end
+  # [../]
+  # [./vel_y]
+  #   type = NewmarkVelAux
+  #   variable = vel_y
+  #   acceleration = accel_y
+  #   gamma = 0.5
+  #   execute_on = timestep_end
+  # [../]
+  # [./accel_z]
+  #   type = NewmarkAccelAux
+  #   variable = accel_z
+  #   displacement = disp_z
+  #   velocity = vel_z
+  #   beta = 0.25
+  #   execute_on = timestep_end
+  # [../]
+  # [./vel_z]
+  #   type = NewmarkVelAux
+  #   variable = vel_z
+  #   acceleration = accel_z
+  #   gamma = 0.5
+  #   execute_on = timestep_end
+  # [../]
   [./stress_xy]
     type = RankTwoAux
     rank_two_tensor = stress
@@ -280,19 +284,19 @@
 
 [BCs]
   [./x_bot]
-    type = PresetBC
+    type = DirichletBC
     variable = disp_x
     boundary = 0
     value = 0.0
   [../]
   [./y_bot]
-    type = PresetBC
+    type = DirichletBC
     variable = disp_y
     boundary = 0
     value = 0.0
   [../]
   [./z_bot]
-    type = PresetBC
+    type = DirichletBC
     variable = disp_z
     boundary = 0
     value = 0.0
@@ -312,12 +316,12 @@
     [../]
   [../]
   [./top_x]
-    type = PresetDisplacement
+    type = FunctionDirichletBC
     boundary = 5
     variable = disp_x
-    beta = 0.25
-    velocity = vel_x
-    acceleration = accel_x
+    # beta = 0.25
+    # velocity = vel_x
+    # acceleration = accel_x
     function = top_disp
   [../]
 []
@@ -331,68 +335,22 @@
 []
 
 [Materials]
-  # [./I_Soil]
-  #   [./soil_1]
-  #     displacements = 'disp_x disp_y disp_z'
-  #     soil_type = 'darendeli'
-  #     layer_variable = layer_id
-  #     layer_ids = '0'
-  #     over_consolidation_ratio = '1'
-  #     plasticity_index = '0'
-  #     initial_shear_modulus = '20000'
-  #     number_of_points = 10
-  #     poissons_ratio = '0.3'
-  #     block = 0
-  #     initial_soil_stress = '-4.204286 0 0  0 -4.204286 0  0 0 -9.810'
-  #     density = '2'
-  #     p_ref = '6.07286'
-  #   [../]
-  # [../]
-  # [./ISoilElasticity]
-  #   type = ComputeISoilStress
-  #   soil_type = 'darendeli'
-  #   layer_variable = layer_id
-  #   layer_ids = '0'
-  #   over_consolidation_ratio = '1'
-  #   plasticity_index = '0'
-  #   initial_shear_modulus = '20000'
-  #   number_of_points = 10
-  #   poissons_ratio = '0.3'
-  #   block = 0
-  #   initial_soil_stress = '-4.204286 0 0  0 -4.204286 0  0 0 -9.810'
-  #   p_ref = '6.07286'
-  # [../]
-  # [./Isoil_elasticitytensor]
-  #   type = ComputeIsotropicElasticityTensorSoil
-  #   block = '0'
-  #   elastic_modulus = '1.0'
-  #   poissons_ratio = '0.3'
-  #   density = '2'
-  #   wave_speed_calculation = false
-  #   layer_ids = '0'
-  #   layer_variable = layer_id
-  # [../]
-  [./elasticity_tensor_block]
-    type = ComputeIsotropicElasticityTensor
-    youngs_modulus = 1e6
-    poissons_ratio = 0.25
-    block = 0
-  [../]
-  [./stress_block]
-    type = ComputeFiniteStrainElasticStress
-    # store_stress_old = true
-    block = 0
-  [../]
-  [./strain_block]
-    type = ComputeIncrementalSmallStrain
-    block = 0
-    displacements = 'disp_x disp_y disp_z'
-  [../]
-  [./density]
-    type = GenericConstantMaterial
-    block = 0
-    prop_names = density
-    prop_values = 1e4
+  [./I_Soil]
+    [./soil_1]
+      soil_type = 'darendeli'
+      layer_variable = layer_id
+      layer_ids = '0'
+      over_consolidation_ratio = '1'
+      plasticity_index = '0'
+      initial_shear_modulus = '20000'
+      number_of_points = 10
+      poissons_ratio = '0.3'
+      block = 0
+      initial_soil_stress = '-4.204286 0 0  0 -4.204286 0  0 0 -9.810'
+      density = '2'
+      p_ref = '6.07286'
+      central_difference = true
+    [../]
   [../]
 []
 
@@ -405,17 +363,16 @@
 
 [Executioner]
   type = Transient
-  solve_type = PJFNK
-  nl_abs_tol = 1e-11
-  nl_rel_tol = 1e-11
+  # solve_type = PJFNK
+  # nl_abs_tol = 1e-11
+  # nl_rel_tol = 1e-11
   start_time = 0
   end_time = 8
-  dt = 0.01
+  dt = 0.001
   timestep_tolerance = 1e-6
-  petsc_options = '-snes_ksp_ew'
-  petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type -pc_hypre_boomeramg_max_iter'
-  petsc_options_value = '201                hypre    boomeramg      4'
-  line_search = 'none'
+  [./TimeIntegrator]
+    type = CentralDifference
+  [../]
 []
 
 [Postprocessors]
@@ -437,36 +394,36 @@
     nodeid = 6
     variable = disp_z
   [../]
-  [./vel_6x]
-    type = NodalVariableValue
-    nodeid = 6
-    variable = vel_x
-  [../]
-  [./vel_6y]
-    type = NodalVariableValue
-    nodeid = 6
-    variable = vel_y
-  [../]
-  [./vel_6z]
-    type = NodalVariableValue
-    nodeid = 6
-    variable = vel_z
-  [../]
-  [./accel_6x]
-    type = NodalVariableValue
-    nodeid = 6
-    variable = accel_x
-  [../]
-  [./accel_6y]
-    type = NodalVariableValue
-    nodeid = 6
-    variable = accel_y
-  [../]
-  [./accel_6z]
-    type = NodalVariableValue
-    nodeid = 6
-    variable = accel_z
-  [../]
+  # [./vel_6x]
+  #   type = NodalVariableValue
+  #   nodeid = 6
+  #   variable = vel_x
+  # [../]
+  # [./vel_6y]
+  #   type = NodalVariableValue
+  #   nodeid = 6
+  #   variable = vel_y
+  # [../]
+  # [./vel_6z]
+  #   type = NodalVariableValue
+  #   nodeid = 6
+  #   variable = vel_z
+  # [../]
+  # [./accel_6x]
+  #   type = NodalVariableValue
+  #   nodeid = 6
+  #   variable = accel_x
+  # [../]
+  # [./accel_6y]
+  #   type = NodalVariableValue
+  #   nodeid = 6
+  #   variable = accel_y
+  # [../]
+  # [./accel_6z]
+  #   type = NodalVariableValue
+  #   nodeid = 6
+  #   variable = accel_z
+  # [../]
   [./stress_xy_el]
     type = ElementalVariableValue
     variable = stress_xy
