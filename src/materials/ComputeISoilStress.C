@@ -333,6 +333,13 @@ ComputeISoilStress::ComputeISoilStress(const InputParameters & parameters)
   // Deconstructing the backbone curves for all the soil layers into
   // elastic-perfectly-plastic components. Each backbone curve is split up into
   // a set of youngs modulus and yield stress pairs.
+  std::cout << soil_type << std::endl;
+  std::cout << Moose::stringify(_poissons_ratio) << std::endl;
+  std::cout << Moose::stringify(_layer_ids) << std::endl;
+  std::cout << "BACKBONE STRAIN ********* \n" << Moose::stringify(backbone_strain) << std::endl;
+  std::cout << "BACKBONE STRESS ********* \n" << Moose::stringify(backbone_stress) << std::endl;
+
+
   _youngs.resize(_layer_ids.size());
   _yield_stress.resize(_layer_ids.size());
   ISoilUtils::computeSoilLayerProperties(

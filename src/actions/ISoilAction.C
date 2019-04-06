@@ -168,6 +168,7 @@ validParams<ISoilAction>()
       "density",
       "Vector of density values that map one-to-one with the number "
       "'layer_ids' parameter.");
+  params.addParam<bool>("implicit", true, "Switch for time integration type. Use false for explicit.");
   return params;
 }
 
@@ -243,27 +244,28 @@ ISoilAction::act()
   // strain calculation
   std::vector<VariableName> displacements = getParam<std::vector<VariableName>>("displacements");
   bool finite_strain = getParam<bool>("finite_strain");
-  if (!finite_strain && soil_type != "thin_layer")
+  if (!finite_strain)// && soil_type != "thin_layer")
   {
     // create small incremental strain block
     params = _factory.getValidParams("ComputeIncrementalSmallStrain");
     std::string unique_strain_name = "strain_" + block[0];
     params.set<std::vector<SubdomainName>>("block") = block;
     params.set<std::vector<VariableName>>("displacements") = displacements;
+    params.set<bool>("implicit") = getParam<bool>("implicit");
     // params.set<bool>("stateful_displacements") = true; // deprecated
     _problem->addMaterial("ComputeIncrementalSmallStrain", unique_strain_name, params);
   }
-  else
-  {
-    if (soil_type == "thin_layer")
-      // create finite strain block
-      params = _factory.getValidParams("ComputeFiniteStrain");
-    std::string unique_strain_name = "strain_" + block[0];
-    params.set<std::vector<SubdomainName>>("block") = block;
-    params.set<std::vector<VariableName>>("displacements") = displacements;
-    // params.set<bool>("stateful_displacements") = true; // deprecated
-    _problem->addMaterial("ComputeFiniteStrain", unique_strain_name, params);
-  }
+  // else
+  // {
+  //   if (soil_type == "thin_layer")
+  //     // create finite strain block
+  //     params = _factory.getValidParams("ComputeFiniteStrain");
+  //   std::string unique_strain_name = "strain_" + block[0];
+  //   params.set<std::vector<SubdomainName>>("block") = block;
+  //   params.set<std::vector<VariableName>>("displacements") = displacements;
+  //   // params.set<bool>("stateful_displacements") = true; // deprecated
+  //   _problem->addMaterial("ComputeFiniteStrain", unique_strain_name, params);
+  // }
 
   // create Elasticty tensor with E = 1 and actual poissons ratio as input
   params = _factory.getValidParams("ComputeIsotropicElasticityTensorSoil");
