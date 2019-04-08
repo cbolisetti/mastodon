@@ -388,7 +388,7 @@
   [./inertia_switch]
     type = TimePeriod
     start_time = 0.97
-    end_time = 1
+    end_time = 0.99
     # enable_objects = ''
     disable_objects = '*/inertia_x */inertia_y */inertia_z */vel_x */vel_y */vel_z */accel_x */accel_y */accel_z'
     set_sync_times = true
@@ -403,7 +403,7 @@
   l_tol = 1e-2
   l_max_its = 20
   start_time = 0.97
-  end_time = 2
+  end_time = 3.6
   dt = 0.005
   timestep_tolerance = 1e-3
   petsc_options = '-snes_ksp_ew'

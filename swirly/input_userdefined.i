@@ -326,14 +326,14 @@
       # initial_soil_stress = 'initial_xy 0 0  0 initial_xy 0  0 0 initial_z'
       density = 0.0002248 #slug/in^3
       p_ref = 5.52 #psi
-      initial_shear_modulus = '1.739e6' #psi
+      # initial_shear_modulus = '1.739e6' #psi
       tension_pressure_cut_off = -0.01
       pressure_dependency = true
       a0 = 0
       a1 = 0
       a2 = 1
-      backbone_curve_files = 'userdefined.csv'
       b_exp = 0
+      backbone_curve_files = 'userdefined.csv'
     [../]
   [../]
 []
@@ -390,7 +390,7 @@
   [./inertia_switch]
     type = TimePeriod
     start_time = 0.97
-    end_time = 1
+    end_time = 0.99
     # enable_objects = ''
     disable_objects = '*/inertia_x */inertia_y */inertia_z */vel_x */vel_y */vel_z */accel_x */accel_y */accel_z'
     set_sync_times = true
@@ -405,8 +405,8 @@
   l_tol = 1e-2
   l_max_its = 20
   start_time = 0.97
-  end_time = 2.33
-  dt = 0.01
+  end_time = 3.6
+  dt = 0.005
   timestep_tolerance = 1e-3
   petsc_options = '-snes_ksp_ew'
   petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type -pc_hypre_boomeramg_max_iter'
