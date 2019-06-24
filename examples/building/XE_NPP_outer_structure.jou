@@ -1,0 +1,411 @@
+reset
+# Created in Cubit Version 15.2
+####################################################################
+### Define Inputs:
+
+### Outer Structure ###
+#{structure_z_length = 130.4}
+#{structure_x_length = 78.5}
+#{structure_y_length = 67.92}
+#{wall_thickness_x = 3}
+#{wall_thickness_y = 3}
+#{basemat_thickness = 7}
+#{wall_thickness_elems = 2}
+#{wall_small_elems = 6}
+#{wall_medium_elems = 7}
+#{wall_large_elems = 10}
+#{wall_section_length_elems = 3}
+#{basemat_thickness_elems = 2}
+
+### Floors ###
+#{floor_thickness = 2}
+#bottom = 0
+#{z1 = 15.2}
+#{z2 = 27.2}
+#{z3 = 40.5}
+#{z4 = 64.0}
+#{z5 = 83.7}
+#{z6 = 104.4}
+#{z7 = 118.3}
+#{floor_thickness_elems = 2}
+
+### Citadel ###
+#{main_height = 113.3}
+#{main_outer_radius = 19.49}
+#{main_inner_radius = 12.925}
+#{rectangle_x = 28.3}
+#{rectangle_y = 24.43}
+#{rectangle_z = 78.7}
+#{hole_radius = 10.44}
+#{citadel_shift_x = -5.9}
+
+### Corner Structure #1 ###
+#{corner_wall_thickness = 1}
+#{outer_x = 21.6}
+#{outer_y = ((structure_y_length-2*wall_thickness_y)-rectangle_y)/2} #dont change this!
+#{small_num_elems = 2}
+#{medium_num_elems = 3}
+#{large_num_elems = small_num_elems*2+corner_wall_thickness}
+
+### Corner Structure #2 ###
+#{outer_x1 = 23.2} 
+#{outer_x2 = 9}
+#{outer_y1 = 8.25} 
+#{outer_y2 = ((structure_y_length-2*wall_thickness_y)-rectangle_y)/2-outer_y1} #dont change this!
+#{corner_structure_thickness_elems = 1}
+
+### Miscellaneous dimensions ###
+#{citadel_big_cutout_z = 33.5}
+#{citadel_big_cutout_angle = 90}
+#{citadel_small_cutout_x = 12}
+#{citadel_small_cutout_y = 10}
+#{citadel_small_cutout_z = 8.2}
+
+### Reactor Vessel ###
+#{RV_center_diameter = 14.76}
+#{RV_height = 46.6}
+#{RV_thickness = .31}
+
+### Steam Generator ###
+#{SG_center_diameter = 11.5}
+#{SG_height = 47.9}
+#{SG_thickness = .34}
+#{SG_center = 22.1} # This is hard coded, depends on citadel dimensions
+#{SG_bottom_gap = 10}
+
+##########################################################################
+### Create Geometry:
+
+#create outer structure
+brick x {structure_x_length} y {structure_y_length} z {structure_z_length}
+brick x {structure_x_length-2*wall_thickness_x} y {structure_y_length-2*wall_thickness_y} z {structure_z_length-2*wall_thickness_z}
+subtract volume 2 from volume 1
+brick x {structure_x_length} y {structure_y_length} z {basemat_thickness}
+volume 3 move z {-(structure_z_length+basemat_thickness)/2}
+
+#create citadel 
+create cylinder height {main_height}  radius {main_outer_radius}
+create cylinder height {main_height}  radius {main_inner_radius}
+subtract volume 5 from volume 4
+volume 4 move x {citadel_shift_x}
+brick x {rectangle_x} y {rectangle_y} z {rectangle_z}
+create cylinder height {rectangle_z}  radius {hole_radius}
+subtract volume 7 from volume 6
+move surface 39 location surface 16 include_merged
+move volume 6 z {-(main_height-rectangle_z)/2}
+
+# Corner Structure #1 (+X -Y corner)
+brick x {outer_x} y {outer_y} z {main_height}
+brick x {(outer_x-3*corner_wall_thickness)/2} y {(outer_y-3*corner_wall_thickness)/2} z {main_height}
+volume 9 move x {(outer_x-corner_wall_thickness)/4} y {(outer_y-corner_wall_thickness)/4}
+volume 9 copy reflect x
+brick x {outer_x-2*corner_wall_thickness} y {(outer_y-3*corner_wall_thickness)/2} z {main_height}
+volume 11 move y {-(outer_y-corner_wall_thickness)/4}
+subtract volume 9 10 11 from volume 8
+move vertex 55 location vertex 44 include_merged
+
+# Corner Structures #2 (+X +Y corner)
+brick x {outer_x1} y {outer_y1} z {main_height}
+brick x {outer_x1-corner_wall_thickness} y {outer_y1-2*corner_wall_thickness} z {main_height}
+volume 13 move x {corner_wall_thickness/2}
+subtract volume 13 from volume 12
+move vertex 112 location vertex 43 include_merged
+brick x {outer_x2} y {outer_y2} z {main_height}
+brick x {outer_x2-.5*corner_wall_thickness} y {outer_y2-corner_wall_thickness} z {main_height}
+volume 15 move x {.25*corner_wall_thickness}
+subtract volume 15 from volume 14
+move vertex 136 location vertex 111 include_merged
+
+# Citadel Bottom Cutouts
+webcut volume 4  with sheet extended from surface 43  
+delete Volume 16
+unite volume 6 4  
+webcut volume 6 12 14 8  with sheet extended from surface 134
+webcut volume 17 20 18 19  with general plane xy offset {-main_height/2+citadel_big_cutout_z}  noimprint nomerge 
+move volume 21 x {-citadel_shift_x}
+webcut volume 21  with general plane yz spin about axis 0 0 1 angle {citadel_big_cutout_angle/2}  noimprint nomerge 
+webcut volume 25  with general plane yz spin about axis 0 0 1 angle {-citadel_big_cutout_angle/1.8}  noimprint nomerge 
+delete volume 25
+move volume 21 26 x {citadel_shift_x}
+brick x {citadel_small_cutout_x} y {citadel_small_cutout_y} z {citadel_small_cutout_z}
+move volume 27 x {-1.5*citadel_shift_x} z {-main_height/2 +citadel_small_cutout_z/2}
+subtract volume 27 from volume 21
+unite volume 26 21
+webcut volume 22 26 23 24  with sheet extended from surface 327
+move volume 24 14 20 31 29 30 12 8 28 19 18 23 17 22 26 6 z {-(structure_z_length-main_height)/2}
+
+# Floors
+volume all move z {structure_z_length/2+basemat_thickness}
+brick x {structure_x_length} y {structure_y_length} z {floor_thickness} 
+volume 32 move z {floor_thickness/2}
+volume 32 copy move z {z1}
+volume 32 copy move z {z2}
+volume 32 copy move z {z3}
+brick x {structure_x_length} y {structure_y_length} z {1.5*floor_thickness} 
+volume 36 move z {z4 +1.5*floor_thickness/2}
+volume 32 copy move z {z5}
+volume 32 copy move z {z6}
+volume 32 copy move z {z7}
+delete volume 32
+
+
+# Webcuts for floors starting from top and working down:
+#1
+webcut volume 6 8 12 14 1 tool volume 39
+subtract volume 41 40 42 43 1 from volume 39 keep
+split body 47
+delete volume 46 48 47 50 52 39
+#2
+webcut volume 6 8 12 14 45 tool volume 38
+subtract volume 6 8 45 12 14 from volume 38 keep
+split body 68
+delete volume 38 63 64 65 68 69  38
+#3
+webcut volume 19 18 17 20 62  tool volume 37 
+subtract volume 62 73 72 71 70  from volume 37  keep
+split body 81
+delete Volume 76 77 78 82 81 37
+
+# Build Reactor Vessel (RV)
+create cylinder height {RV_height}  radius {RV_center_diameter/2+RV_thickness}
+create cylinder height {RV_height}  radius {RV_center_diameter/2}
+chop volume 84  with volume 85 
+move Surface 989 985  location surface 440  include_merged
+move volume 86 87 x {citadel_shift_x}
+
+#4
+webcut volume 75 87 86 17 20 18 19  tool volume 36 
+subtract volume 75 20 17 87 86 18 19  from volume 36   keep
+split body 110
+delete Volume 102 103 104 109 107 36
+
+#Steam Generator (SG)
+create cylinder height {SG_height}  radius {SG_center_diameter/2+SG_thickness}
+create cylinder height {SG_height}  radius {SG_center_diameter/2}
+chop volume 110  with volume 111 
+move volume 112 113 x {SG_center} z {SG_height/2+SG_bottom_gap}
+
+#5
+webcut volume 99 101 97 89 113 112 95 tool volume 35 
+subtract volume 89 116 123 113 112 114 115  from volume 35   keep
+split body 131
+delete Volume 129 130 131 126 35
+
+#6 
+webcut volume 22 26 23 24 118  tool volume 34  
+subtract volume 26 118 22 23 24  from volume 34   keep
+split body 153
+delete Volume 142 144 143 148 147 34
+
+#7
+webcut volume 141 135 133 137 139  tool volume 33  
+subtract volume 141 151 152 153 154  from volume 33  keep
+split body 168
+delete Volume 156 157 155 161 160 33
+
+### Webcuts for meshing
+webcut volume 3 1 140 141 149 88 75 74 62 61 45 89 44 117 118 150  with general plane xz offset {structure_y_length/2-wall_thickness_y}  noimprint nomerge 
+webcut volume 166 169 172 171 168 170 173 167 176 164 163 165 177 174 175 162   with general plane xz offset {-structure_y_length/2+wall_thickness_y}  noimprint nomerge 
+webcut volume 149 150 185 179 183 61 62 117 88 89 165 163 189 162 164 3 75 74 1 141 166 167 191 45 44 181 193 207 201 208 118 172 171 169 203 195 205 170 168 199 177 187 197 140 174 176 173 175   with general plane yz offset {-structure_x_length/2+wall_thickness_x}  noimprint nomerge 
+webcut volume 149 150 178 61 62 117 88 89 165 163 162 180 164 3 75 74 1 141 166 188 182 167 45 44 192 200 198 206 208 118 172 171 169 202 186 204 170 168 194 196 190 177 184 140 174 176 173 175    with general plane yz offset {structure_x_length/2-wall_thickness_x}  noimprint nomerge 
+webcut volume 196 202 186 182 188 198 190 192 200 180 194 184 178 206 204 162 153 30 137 23 136 114 99 18 98 71 58 12 57 42  with sheet extended from surface 689
+webcut volume 57 99 18 71 42 114 12 58 153 98 136 30 137 23 162 202 200 178 194 196 190 206 186 192 188 180 182 184 198 204 with sheet extended from surface 691
+webcut volume 281 286 283 285 282 284 287 289 288 277 278 279 280 275 276 290  with sheet extended from surface 695  
+webcut volume 319 334 324 323 322 321 320 333 328 325 332 327 331 326 330 329  with sheet extended from surface 693
+webcut volume 309 305 312 311 308 314 306 307 310 315 318 317 313 316  with sheet extended from surface 722  
+webcut volume 154 101 100 70 43 19 67 60 59 24 14 31 138 139 115 80 145 125 311 306 106 158 316 315 314 313 305 312 317 318 307 308 309 310  with sheet extended from surface 718  
+webcut volume 101 154 14 31 351 139 24 60 59 19 43 115 70 100 138 352 357 356 355 354 353 360 359 364 362 366 365 363 361 358  with sheet extended from surface 719  
+webcut volume 101 154 14 31 352 139 24 60 59 19 358 43 115 70 100 138 351 357 356 355 354 353 360 364 362 359 366 365 363 361  with sheet extended from surface 717 
+webcut volume 273 250 258 268 272 262 249 271 269 274 265 267 266 264 252 259  with sheet extended from surface 4464  
+webcut volume 492 496 495 498 497 494 484 485 483 493 486 488 487 489 491 490  with sheet extended from surface 4462
+webcut volume 248 256 246 270 257 261 247 242 245 253 254 263 260 243 244 255  with sheet extended from surface 644  
+webcut volume 96 41 55 20 56 116 248 256 246 270 257 261 247 242 245 8 253 254 132 97 263 133 260 152 243 244 255 73 28 22  with sheet extended from surface 650  
+webcut volume 534 550 536 538 554 552 532 535 531 533 549 546 542 560 558 556 553 557 545 543 548 539 537 540 551 544 541 555 547 559  with sheet extended from surface 358
+webcut volume 348 335 344 343 342 339 338 345 346 347 336 340 341 349 337 350  with sheet extended from surface 5593 
+webcut volume 301 300 303 302 299 298 380 379 378 377 374 373 372 371 297 296 295 294 304 293 292 291 375 368 370 369 367 376 with sheet extended from surface 690
+webcut volume 573 577 579 571 564 347 342 341 346 345 337 348 344 28 349 350 340 338 343 339 335 550 546 549 568 575 55 56 96 97 532 133 8 531 533 41 603 554 552 565 581 534 535 336 152 562 22 73 588 583 586 116 132 536 560 559 558 20 with sheet extended from surface 639
+webcut volume 699 700 701 702 703 704 706 650 695 654 652 653 649 656 661 659 683 684 685 686 687 688 689 690 662 663 697 698 664 666 667 693 694 655 669 670 672 673 674 675 677 678 679 680 682 651 660 681 676 696 668 657 665 658 692 671 691 705  with sheet extended from surface 647  
+webcut volume 751 743 708 723 721 709 716 710 713 735 761 747 736 758 726 764 763 720 746 756 742 738 762 715 757 760 755 724 722 731 730 712 750 711 748 753 740 749 727 759 737 732 754 741  with sheet extended from surface 637
+webcut volume 751 743 708 723 721 709 716 710 713 735 761 747 736 758 726 764 763 720 746 756 742 738 762 715 757 604 760 755 724 722 731 730 712 750 711 748 753 740 749 727 759 737 732 754 741  with sheet extended from surface 645 
+webcut volume 573 603 577 583 739 734 733 579 729 728 725 719 581 575 752 745 744 586 568 718 717 714 707 571 562 565 564 588  with sheet extended from surface 640  
+webcut volume 573 603 577 583 739 734 733 579 729 728 725 719 581 575 752 745 744 586 568 718 717 714 707 571 562 565 564 588  with sheet extended from surface 651
+
+### Finalize Geometry 
+imprint all
+merge all
+compress ids all
+
+#############################################################################
+#### Meshing 
+
+#Roof
+curve 1196 939 2233 2349 2472 1299 937 3369 3208 3036 2843 2646 1584 1361 1544 1616 1993 1918 1102 1279 2106 2186 1173 1106  int {wall_thickness_elems}
+curve 1908 1750 1740 26 27 18 1749 2025 1751 1862 1663 2811 2826 1451 1422 2787 19 2300 2967 3540 2833 3657 3047 3746 3607 2302 3074 3289 3497 2305 2295 2503 2477 3529 3378 3211 3137 2508 3310 2846 2511 2509 2956 int {corner_structure_thickness_elems}
+curve 2474 10  int {large_num_elems}
+curve 3499 3500 3079 3080 3613 3612 3543 3542 3662 3663 14 13 3748 3747 3530 3374 3042 3138 1546 1864 1748 22 2027 196 194 1995 1743 24 2108 1547 1452 16 3043 3375 int {small_num_elems}
+curve 2828 2829 int {medium_num_elems}
+curve 197 2648 2788 2789 int {wall_small_elems}
+curve 199 2236 int {wall_medium_elems}
+curve 198 2192 177 1105 int {wall_large_elems}
+mesh surface 1164 1029 1167 44 1338 1337 2162 926 1298 1294 1222 633 1024 1444 1207 1534 1530 767 2164  2116 2113 862 898 1959 2176 3027 2467 2270 2363 2540 2639 3107 2887 2702 2889 2706 652 1788 1807 1786 1675 2841 2839 2613 2395 2283 2911 2965 3111 2372 3030 1588 551 470 531
+surface 46 scheme pave
+mesh surface 46
+mesh surface 1
+curve 188 187 3498 154 3288 3075 150 2968 2296 152 151 153 3658 148 158 1450 2827 173 170 161 2187 1280 1907 171 int {floor_thickness_elems}
+volume 690 158 250 473 657 139 140 660 331 712 508 330 595 590 457 425 794 288 805 197 733 777 274 26 1 833 20 756 245 191 822 221 625 620 514 513 374 405 21 19 555 22 362 393 299 308 404 479 25 665 787 588 743 104 446 164  redistribute nodes on 
+mesh volume 690 158 250 473 657 139 140 660 331 712 508 330 595 590 457 425 794 288 805 197 733 777 274 26 1 833 20 756 245 191 822 221 625 620 514 513 374 405 21 19 555 22 362 393 299 308 404 479 25 665 787 588 743 104 446 164
+
+#walls above and below roof
+curve 1208 int {wall_section_length_elems}
+mesh volume 275 145 169 461 596 230 212 146 283 202 293 483 786 525 23 379 455 681 550 431 115 742 398 179
+curve 1148 206 int {wall_section_length_elems-1}
+mesh volume 519 520 277 836 716 616 35 173 227 556 664 497 592 829 206 808 29 693 152 27 33 302 244 724 31 709 470 126 760 309 530 392 687 337 336 585 474 434 125 246 372 423 185 633 564 356 449 112 801 624 753 768 402 702 273
+
+#second floor from top and wall below
+surface 94  Scheme pave
+mesh surface 94 
+mesh Surface 99
+curve 214 1207 int {floor_thickness_elems}
+mesh volume 124 468 827 612 38 494 286 205 695 553 350 243 797 4 639 523 524 531 391 5 396 586 341 340 219 304 437 24 172 422 675 201 772 799 311 487 272 366 792 731 728 252 123 441 599 622 113 168 565 825 748 6 3 703 701 775 37
+curve 210 1192 int {wall_section_length_elems}
+mesh volume 390 807 357 532 515 225 615 809 306 722 632 835 557 271 110 28 253 617 776 516 696 421 122 436 442 498 766 562 700 686 606 476 789 281 121 335 732 43 745 704 242 471 401 30 837 163 196 32 587 310 34 334 207 371 174
+
+#third floor from top and wall below
+surface 3198  Scheme pave
+mesh surface 3198 
+mesh Surface 127
+surface 121  Scheme pave
+mesh surface 121 
+surface 131  Scheme pave
+mesh surface 131
+curve 379 1153 int {floor_thickness_elems}
+mesh volume 705 47 389 175 186 486 697 241 575 769 763 765 130 129 800 725 721 719 328 208 646 638 637 46 554 111 249 563 435 420 849 329 499 598 361 699 220 42 445 41 270 828 533 821 40 376 464 307 407 287 312 36 39 674 528 529 153 45
+curve 458 1163 int {wall_section_length_elems}
+mesh volume 300 472 706 188 443 50 574 60 62 313 761 134 133 623 240 155 108 591 750 326 484 223 688 327 255 269 609 566 618 796 655 419 377 200 692 698 534 386 774 518 354 824 517 815 439 717 730 843 462 56 58 408 551 280 167 
+
+#fourth floor from top and wall below
+surface 178 189  Scheme pave
+mesh surface 178 189 
+surface 138  Scheme hole 
+mesh surface 138
+surface 146  Scheme pave
+mesh surface 146 184
+curve 463 1191 int {floor_thickness_elems}
+mesh volume 8 332 65 503 502 48 418 333 195 450 209 285 49 475 714 239 373 128 602 388 162 798 66 248 176 710 489 403 109 218 303 9 754 572 780 826 548 736 44 315 427 662 654 647 818 535 360 10 268 671 680 635 631 466 758 567 7 846 127 64
+mesh volume 52 54
+curve 1158 652 int {wall_section_length_elems+1}
+mesh volume 305 505 63 61 364 417 314 504 440 229 215 351 726 238 148 147 59 573 387 611 608 740 746 841 284 594 154 813 247 116 770 57 683 678 72 458 324 491 433 659 820 790 267 536 480 187 394 576 689 182 619 325 784 55 549 53 848
+
+#fifth floor from top and wall below
+mesh surface 236 3206 245
+surface 216 Scheme hole 
+mesh surface 216
+surface 224  Scheme pave
+mesh surface 224 
+curve 653 1166 int {floor_thickness_elems}
+mesh volume 67 69 266 708 416 507 78 610 819 81 82 749 713 803 71 363 641 651 793 132 506 537 237 577 847 68 669 70 189 424 222 547 214 276 385 348 349 757 114 682 301 181 131 629 477 375 406 752 80 156 478 448 643 456 51 316 584 649 831 251 79
+mesh volume 74 76
+curve 717 1233 int {wall_section_length_elems}
+mesh volume 490 178 802 613 265 785 294 521 85 160 711 650 87 89 353 538 236 289 216 578 459 438 77 830 444 684 415 211 546 481 384 601 751 83 630 105 755 694 670 344 345 138 741 806 378 522 834 409 193 642 75 707 317 589 256 91 137
+
+#second floor from bottom and wall below
+mesh surface 289 surface 295
+curve 699 1216 int {floor_thickness_elems}
+mesh volume 839 452 359 279 552 213 136 226 135 204 527 526 370 264 718 729 816 811 383 73 501 607 235 762 677 492 338 259 295 539 739 579 656 644 640 318 844 467 428 783 414 400 636 652 648 339 571 773 93 171 14 117 11 12 13 180 94
+curve 837 1138 int {wall_section_length_elems-1}
+mesh volume 540 86 84 593 150 782 413 767 120 119 296 511 621 493 166 346 347 88 90 263 183 570 199 723 788 744 447 738 817 628 512 485 661 668 369 399 358 845 842 382 107 658 426 95 558 814 282 258 463 597 581 319 691 228 234
+
+# first floor and wall below
+mesh surface 342 335
+curve 843 1198 int {floor_thickness_elems}
+mesh volume 627 412 165 495 569 453 509 600 157 734 278 142 323 141 320 262 100 98 510 482 198 101 254 297 764 190 810 614 355 99 838 381 106 685 667 583 720 322 97 92 541 812 634 771 840 460 365 679 560 778 727 663 430 232 395 224 102
+curve 104 1143 int {wall_section_length_elems -1} 
+mesh volume 177 17 151 469 411 791 217 496 454 380 144 143 342 747 781 582 118 210 343 257 298 804 16 737 823 645 18 352 367 184 832 672 673 653 604 626 96 542 545 795 544 261 568 290 603 666 559 779 15 735 321 500 432 397 233
+
+#basemat
+mesh Surface 3214 3215 3210 3213 3211 3212
+curve 1292 1133 int {basemat_thickness_elems}
+mesh volume 465 149 715 203 260 170 488 292 429 410 759 543 231 368 561 291 676 451 194 192 605 103 2 161 159
+
+##############################################################################3
+### Assign Blocks and Boundaries
+
+block 1 add volume 465 429 260 231 605 170 291 488 159 192 161 203 103 194 368 2 715 759 149 410 676 561 292 451 543
+block 1 name 'basemat'
+group "basemat" add volume 465 429 260 231 605 170 291 488 159 192 161 203 103 194 368 2 715 759 149 410 676 561 292 451 543
+color group basemat green
+
+block 2 add volume 380 379 264 263 481 262 494 261 470 171 178 131 143 145 141 139 137 125 135 118 129 133 663 228 230 220 229 661 225 662 762 223 227 226 778 710 468 23 482 24 489 297 299 73 298 1 300 302 530 598 607 539 163 164 169 387 391 389 388 390 386 551 558 537 162 791 793 790 151 168 152 150 165 272 267 271 269 461 270 266 459 268 265 105 51 289 106 420 283 276 423 121 279 107 285 286 111 112 534 555 536 541 486 485 599 694 188 633 548 202 698 699 767 763 560 775 540 542 195 196 198 184 186 189 197 383 385 382 384 381 91 92 123 156 153 187 183 201 414 418 404 600 602 556 535 110 277 288 43 119 747 749 785 421 412 417 411 415 413 222 218 754 224 596 760 734 730 774 731 204 185 287 109 44 601 496 547 508 559 275 274 467 466 460 273 457 480 36 479 35 463 458 552 702 700 701 716 789 96 456 498 471 464 117 104 116 280 113 278 115 127 108 217 550 606 673 301 293 296 478 483 484 211 497 462 469 95 549 610 546 557 553 525 595 682 538 282 147 398 284 290 492 604 608 609 554 281 50 114 756 294 533 531 532 393 392 422 718 719 723 745 742 741 786 677 678 681 746 597 712 216 657 219 221 305 72 295 306 303 307 304 416 419 155 154 212 449 455 446 206 431 434 191 425 205 441 437 436 207 442 208 200 435 445 439 443 209 427 450 433 215 440 214 424 448 193 444 438 199 213 452 428 447 426 190 430 432 210 453 454 177 157 166 180 160 181 182 176 167 175 174 172 173 158 179 146 140 126 124 122 130 134 128 148 132 138 136 120 142 144
+block 2 name 'walls'
+group "walls" add volume 380 379 264 263 481 262 494 261 470 171 178 131 143 145 141 139 137 125 135 118 129 133 663 228 230 220 229 661 225 662 762 223 227 226 778 710 468 23 482 24 489 297 299 73 298 1 300 302 530 598 607 539 163 164 169 387 391 389 388 390 386 551 558 537 162 791 793 790 151 168 152 150 165 272 267 271 269 461 270 266 459 268 265 105 51 289 106 420 283 276 423 121 279 107 285 286 111 112 534 555 536 541 486 485 599 694 188 633 548 202 698 699 767 763 560 775 540 542 195 196 198 184 186 189 197 383 385 382 384 381 91 92 123 156 153 187 183 201 414 418 404 600 602 556 535 110 277 288 43 119 747 749 785 421 412 417 411 415 413 222 218 754 224 596 760 734 730 774 731 204 185 287 109 44 601 496 547 508 559 275 274 467 466 460 273 457 480 36 479 35 463 458 552 702 700 701 716 789 96 456 498 471 464 117 104 116 280 113 278 115 127 108 217 550 606 673 301 293 296 478 483 484 211 497 462 469 95 549 610 546 557 553 525 595 682 538 282 147 398 284 290 492 604 608 609 554 281 50 114 756 294 533 531 532 393 392 422 718 719 723 745 742 741 786 677 678 681 746 597 712 216 657 219 221 305 72 295 306 303 307 304 416 419 155 154 212 449 455 446 206 431 434 191 425 205 441 437 436 207 442 208 200 435 445 439 443 209 427 450 433 215 440 214 424 448 193 444 438 199 213 452 428 447 426 190 430 432 210 453 454 177 157 166 180 160 181 182 176 167 175 174 172 173 158 179 146 140 126 124 122 130 134 128 148 132 138 136 120 142 144
+
+delete volume 26 37 45 64 79 94 102 25 38 46 65 80 93 101 82 81 66
+
+delete volume 580 583 582 350 396 409 394 406 400 403 401 402 407 310 357 408 317 397 395 399  828 830 831 615 630 826 832 614 638 841 842 798 635 640 802 803 804 800 629 815 816 837 838 593 591 626 813 809 810 594 844 843 814 639 827 799  753 840 845 846 848 847 768 529 823 770 764 584 63 62 60 233 239 666 822 765 660 590 685 787 358 361 355 356 359 360 374 378 744 743 736 737 739 834 835 836 669 839 100 98 99 788 829 521 248 510 250 251 519 516 259 833 83 84 648 819 820 818 821 5 88 89 90 849 322 476 495 493 366 20 580 824 245 29 13 32 363 329 328 319 320 327 326 324 325 321 675 670 690 611 613 680 506 504 70 612 668 683 512 713 527 797 805 796 806 812 21 308 312 311 475 318 491 490 568 570 573 575 509 232 794 623 473 751 780 61 651 592 502 10 517 503 367 247 39 42 664 704 588 22 6 620 625 627 624 351 349 352 348 477 371 514 522 372 528 520 377 526 511 569 18 795 518 523 722 9 505 783 254 258 370 253 257 252 255 256 33 757 69 487 30 674 332 330 333 331 586 585 587 572 652 474 309 314 313 315 316 323 354 693 655 500 501 721 720 40 507 792 687 34 353 362 472 781 750 703 8 249 246 373 375 513 709 59 58 643 646 645 644 574 17 772 692 766 671 658 243 242 241 244 240 337 336 335 334 515 706 369 707 364 71 545 376 544 365 524 653 631 628 632 811 801 817 807 808 705 825 667 499 728 733 726 4 11 31 342 346 343 340 345 347 339 344 341 338 684 665 777 15 238 235 236 237 234 405 659 686 616 617 732 724 622 748 695 776 696 637 618 725 697 717 688 761 647 714 654 619 740 689 784 758 641 642 708 711 649 650 752 755 636 729 656 773 782 691 738 621 634 603 727 735 672 679 771 779 769 571 12 589 87 581 579 578 577 576 567 566 563 562 565 564
+
+delete volume 78 85 86 47 41 28 19 14 56 97 27 16 7 57 3
+
+delete volume 52 49 53 
+
+delete volume 54 48 55 
+
+delete volume 68 74 75
+
+delete volume 76 67 77 
+
+sideset 1 add surface 1620 1712 1938 1935 645 2730 638 2724 2555 2427 1996 2224 919 806 924 1366 1360 1190 669 1560 1457 1556 568 536 543 
+sideset 1 name 'bottom_surface'
+
+### assign floor sidesets for periodic bcs.
+# numbering follows same pattern for each floor
+# Pattern: (-x to +x = 2 to 3, length = 72.5) (-y to +y = 4 to 5, length = 61.92) 
+
+#top floor 
+Sideset 2 add surface 41  
+Sideset 3 add surface 42 36 34 863 33 50 2179 2362 2543 2701 2707 39  
+Sideset 4 add surface 48 1645 1783 1787  
+Sideset 5 add surface 49 1031 1026  
+
+#sixth floor
+Sideset 6 add surface 93  
+Sideset 7 add surface 89 88 100 78 855 77 97 2198 2502 2600 2814 2816  
+Sideset 8 add surface 1846 1842 1707 98  
+Sideset 9 add surface 95 1069 1066  
+
+#fifth floor
+Sideset 10 add surface 119  
+Sideset 11 add surface 103 104 126 107 847 108 111 2193 2494 2571 2753 2759  
+Sideset 12 add surface 1864 1861 1705 125  
+Sideset 13 add surface 124 1021 1017  
+
+#fourth floor
+Sideset 14 add surface 137  
+Sideset 15 add surface 174 185 177 167 839 169 157 2212 2380 2535 2686 2692  
+Sideset 16 add surface 1767 1762 1655 183  
+Sideset 17 add surface 179 1037 1034  
+
+#third floor
+Sideset 18 add surface 215  
+Sideset 19 add surface 204 241 207 197 831 199 234 2240 2335 2546 2710 2713  
+Sideset 20 add surface 1781 1777 1664 239  
+Sideset 21 add surface 240 1098 1094  
+
+#second floor
+Sideset 22 add surface 285  
+Sideset 23 add surface 280 288 283 273 823 275 263 2230 2340 2566 2744 2750  
+Sideset 24 add surface 1859 1855 1728 291  
+Sideset 25 add surface 294 1058 1063  
+
+#first floor
+Sideset 26 add surface 298  
+Sideset 27 add surface 330 337 333 323 815 325 2385 307 2202 2575 2762 2767  
+Sideset 28 add surface 1798 1794 1688 338  
+Sideset 29 add surface 343 994 987
+
+## draw final blocks in color coordinated groups
+draw basemat color blue add
+draw walls color white add
+
+## Export
+block all element type HEX8
+export Genesis  "XE_NPP_outer_structure.e" overwrite
