@@ -12,7 +12,7 @@ A list of example simulations using MASTODON is provided below. These examples i
 - [Example 6b](examples/example6b.md): Displacement-controlled frictional contact problem with I-soil and using the restart option for static initialization.
 - [Example 6c](examples/example6c.md): Force-controlled contact problem.
 - [Example 7](examples/example7.md): Demonstration of domain reduction method.
-- [Example 8](examples/example8.md): Seismic Risk Updating of a Nuclear Power Plant in Light of Revised Seismic Hazard and New Fragility Data.
+- [Example 8](examples/example8.md): Seismic Risk Updating of a Nuclear Facility in Light of Revised Seismic Hazard.
 
 
 !bibtex bibliography
