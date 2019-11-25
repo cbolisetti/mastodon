@@ -432,7 +432,7 @@ class Quantification(object):
                           [[PGA, Prob. of exceedance], ...]
 
     (5) IM[list]: Default is [0.1,4]. A list with lower & upper bounds of
-                  Intensity Measure.
+                  Intensity Measure in the hazard curve.
 
     (6) nbins[int]: Default is 15. Number of bins for Intensity Measure.
                     Can input any integer greater than 1.
@@ -504,6 +504,8 @@ class Quantification(object):
             else:
                 if not isinstance(IM, list):
                     raise TypeError("The supplied items of IM range must be a list.")
+                elif len(IM) != 2:
+                    raise IOError("The length of IM should be equal to 2.")
                 self.__imrang = IM
 
             # Number of bins for Intensity Measure
