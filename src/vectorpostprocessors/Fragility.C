@@ -22,16 +22,24 @@ validParams<Fragility>()
       "Name of the multiapp corresponding to the probabilistic simulations.");
   params.addRequiredParam<unsigned int>("num_gms",
                                         "Number of ground motions used in each intensity bin.");
-  params.addRequiredParam<std::string>(
-      "demand_variable",
-      "Demand variable for the SSC that is also column name in the output csv "
-      "file. Acceleration variable only."); // TODO: generalize class for all
-                                            // demand variables by processing
-                                            // VectorPostprocessor data and
-                                            // getting rid of response spectra
-                                            // calculation in this class.
-  params.addRequiredParam<Real>(
-      "frequency", "Frequency at which, the spectral demand of the SSC is calculated.");
+  params.addRequiredParam<std::vector<std::string>>(
+      "demand_variable_names",
+      "Demand variables to calculate the failure probability of the SSC. "
+      "These names are assumed to be the column names in the CSV files being read. "
+      "Acceleration variable only."); // TODO: generalize class for all
+                                      // demand variables by processing
+                                      // VectorPostprocessor data and
+                                      // getting rid of response spectra
+                                      // calculation in this class.
+  MooseEnum demand_calc_type("peak average", "average");
+  params.addParam<MooseEnum>("demand_calc_type", demand_calc_type,
+                                     "This parameter describes how the demand is "
+                                     "calculated if multiple frequencies, or variable "
+                                     "names are provided. Average option averages demands for "
+                                     "all frequencies and variables. Peak option calculates the "
+                                     "peak for all frequencies and variables.");
+  params.addRequiredParam<std::vector<Real>>(
+      "frequencies", "Frequency at which, the spectral demand of the SSC is calculated.");
   params.addParam<Real>(
       "damping_ratio",
       0.05,
@@ -90,8 +98,8 @@ Fragility::Fragility(const InputParameters & parameters)
     _hazard_multiapp(getParam<std::string>("hazard_multiapp")),
     _probabilistic_multiapp(getParam<std::string>("probabilistic_multiapp")),
     _num_gms(getParam<unsigned int>("num_gms")),
-    _demand_variable(getParam<std::string>("demand_variable")),
-    _ssc_freq(getParam<Real>("frequency")),
+    _demand_variable_names(getParam<std::vector<std::string>>("demand_variable_names")),
+    _ssc_freq(getParam<std::vector<Real>>("frequencies")),
     _ssc_xi(getParam<Real>("damping_ratio")),
     _dtsim(getParam<Real>("dt")),
     _median_cap(getParam<Real>("median_capacity")),
@@ -112,18 +120,23 @@ Fragility::Fragility(const InputParameters & parameters)
     _sgd_tolerance(getParam<Real>("sgd_tolerance")),
     _sgd_gamma(getParam<Real>("sgd_gamma")),
     _sgd_numrnd(getParam<Real>("sgd_numrnd")),
-    _sgd_seed(getParam<Real>("sgd_seed"))
+    _sgd_seed(getParam<Real>("sgd_seed")),
+    _demand_calc_type(getParam<MooseEnum>("demand_calc_type"))
 {
 #ifndef LIBMESH_HAVE_EXTERNAL_BOOST
   mooseError("In Fragility block '",
              name(),
              "'. The Fragility block requires that libMesh be compiled with an external Boost "
-             "library, this may be done "
-             "using the --with-boost configure option.");
+             "library. This can be done "
+             "using the --with-boost configure option while compiling libMesh.");
 #endif // LIBMESH_HAVE_EXTERNAL_BOOST
-  // Check for non-positive SSC frequency
-  if (_ssc_freq <= 0)
-    mooseError("Error in block '" + name() + "'. SSC frequency must be positive.");
+  // Check for SSC frequency sanity
+  if (_ssc_freq.size() != 1 && _ssc_freq.size() != 3)
+    mooseError("Error in block '" + name() + "'. SSC frequencies must either be a single frequency "
+               "or a range of frequencies along with the number of frequencies in the range. For "
+               "the latter case, the input must be of length 3.");
+  if (MastodonUtils::isNegativeOrZero(_ssc_freq))
+    mooseError("Error in block '" + name() + "'. SSC frequencies must be positive.");
   // Check for non-positive SSC damping
   if (_ssc_xi <= 0)
     mooseError("Error in block '" + name() + "'. SSC damping ratio must be positive.");
@@ -231,14 +244,36 @@ Fragility::calcDemandsFromFile(unsigned int bin)
                << std::endl;
       MooseUtils::DelimitedFileReader demand_sample_file(demand_sample_filename);
       demand_sample_file.read();
-      demand_sample = demand_sample_file.getData(_demand_variable);
-      demand_time = demand_sample_file.getData("time");
-      demand_sample = MastodonUtils::regularize(
-          demand_sample, demand_time, _dtsim)[1]; // regularize the demand sample
-      demand_sample_spectrum =
-          MastodonUtils::responseSpectrum(0.01, 100, 401, demand_sample, _ssc_xi, _dtsim);
-      LinearInterpolation spectraldemand(demand_sample_spectrum[0], demand_sample_spectrum[3]);
-      stoc_demands[k] = spectraldemand.sample(_ssc_freq);
+      std::vector<Real> stoc_demands_of_var(_demand_variable_names.size());
+      for (std::size_t var = 0; var < _demand_variable_names.size(); var++)
+      {
+        demand_sample = demand_sample_file.getData(_demand_variable_names[var]);
+        demand_time = demand_sample_file.getData("time");
+        // Regularizing the demand sample
+        demand_sample = MastodonUtils::regularize(demand_sample, demand_time, _dtsim)[1];
+        // Calculating the spectral accelerations for the demand sample in the
+        // frequencies of the SSC
+        if (_ssc_freq.size() == 1)
+          {
+            demand_sample_spectrum = MastodonUtils::responseSpectrum(_ssc_freq[0], _ssc_freq[0], 1, demand_sample, _ssc_xi, _dtsim);
+            stoc_demands_of_var[var] = demand_sample_spectrum[3][0];
+          }
+        else
+          {
+            // Range of frequencies was requested. Combining the spectral demands
+            // at various frequencies
+            demand_sample_spectrum = MastodonUtils::responseSpectrum(_ssc_freq[0], _ssc_freq[1], std::ceil(_ssc_freq[2]), demand_sample, _ssc_xi, _dtsim);
+            if (_demand_calc_type == "average")
+              stoc_demands_of_var[var] = MastodonUtils::mean(demand_sample_spectrum[3]);
+            if (_demand_calc_type == "peak")
+              stoc_demands_of_var[var] = *std::max_element(demand_sample_spectrum[3].begin(), demand_sample_spectrum[3].end());
+          }
+      }
+      // combining the demand of various variables
+      if (_demand_calc_type == "average")
+        stoc_demands[k] = MastodonUtils::mean(stoc_demands_of_var);
+      if (_demand_calc_type == "peak")
+        stoc_demands[k] = *std::max_element(stoc_demands_of_var.begin(), stoc_demands_of_var.end());
       k++;
     }
   }

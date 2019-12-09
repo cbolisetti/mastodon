@@ -29,8 +29,8 @@
     hazard_multiapp = 'run_hazard'
     probabilistic_multiapp = 'sub'
     num_gms = 3
-    demand_variable = 'accel_2x'
-    frequency = 4
+    demand_variable_names = 'accel_2x'
+    frequencies = 4
     damping_ratio = 0.05
     dt = 0.005
     median_capacity = 0.01
@@ -48,5 +48,4 @@
 [Outputs]
   csv = true
   execute_on = 'final'
-  perf_graph = 'true'
 []

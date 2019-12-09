@@ -60,11 +60,11 @@ protected:
   /// Number of ground motions used in each intensity bin
   const unsigned int & _num_gms;
 
-  /// Demand variable name of the ssc that is also column name in the output csv file
-  const std::string & _demand_variable;
+  /// Demand variable names of the ssc that is also column name in the output csv file
+  const std::vector<std::string> & _demand_variable_names;
 
-  /// Frequency at which the spectral acceleration demand of the SSC is to be calculated
-  const Real & _ssc_freq;
+  /// Frequencies at which the spectral acceleration demand of the SSC is to be calculated
+  const std::vector<Real> & _ssc_freq;
 
   /// Damping ratio of the ssc for spectral acceleration demand calculation
   const Real & _ssc_xi;
@@ -128,6 +128,9 @@ protected:
 
   /// Seed for the random number generator
   const int _sgd_seed;
+
+  /// Demand calculation type (peak or average)
+  const std::string _demand_calc_type;
 };
 
 #endif

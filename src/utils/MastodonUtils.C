@@ -28,7 +28,10 @@ MastodonUtils::responseSpectrum(const Real & freq_start,
   {
     // Building the frequency vector. Frequencies are distributed
     // uniformly in the log scale.
-    logdf = (std::log10(freq_end) - std::log10(freq_start)) / (freq_num - 1);
+    if (freq_num == 1)
+      logdf = 0; // calculating the spectrum at only one frequency, i.e., freq_start
+    else
+      logdf = (std::log10(freq_end) - std::log10(freq_start)) / (freq_num - 1);
     freq_vec.push_back(pow(10.0, std::log10(freq_start) + n * logdf));
     om_n = 2.0 * 3.141593 * freq_vec[n]; // om_n = 2*pi*f
     om_d = om_n * xi;
