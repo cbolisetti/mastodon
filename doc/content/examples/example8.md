@@ -6,18 +6,18 @@ This example demonstrates the seismic risk assessment of a generic nuclear facil
 INL site and subject to the INL site seismic hazard. The risk analysis is performed using the MASTODON's
 FTA Python module that performs fault tree analysis and calculates the seismic risk.
 
-The generic nuclear facility (GNF) represents a safety-critical facility owned and
-operated by the Department of Energy (DOE). The GNF is assumed to host materials at risk (MAR) that
+The generic nuclear facility (GNF) represents a safety-critical facility in
+the Department of Energy (DOE) complex. The GNF is assumed to host materials at risk (MAR) that
 need to be contained in the facility and is classified as a Seismic Design category 3 (SDC 3) structure
 per ASCE 43 [!citep](asce43-05). The containment structure of GNF is assumed to be the
 primary containment and that the collapse of the structure will release the MAR
-into the atmosphere leading to radiation exposure to collocated workers and off-site
+into the atmosphere, resulting in radiation exposure of collocated workers and off-site
 receptors. Therefore, the seismic risk assessment of the GNF involves the calculation
 of the collapse risk of the GNF structure.
 
 The inputs for seismic risk assessment of GNF include the seismic hazard at the INL
 site, the seismic collapse fragility of the GNF structure, and the event tree and
-fault tree for the collapse. For this example, the seismic hazard curve is adopted
+fault tree for the structural collapse. For this example, the seismic hazard curve is adopted
 from the probabilistic seismic hazard analyses performed for the INL site. The
 seismic fragilities, event tree, and fault trees are gathered from those of similar
 facilities and are assumed to be representative of safety-critical DOE facilities.
@@ -32,8 +32,7 @@ new data and models for characterizing the seismic sources and the ground motion
 at the target site, as described in [!citet](Payne2017b) and [!citet](Payne2017).
 [fig:SH] presents the original and updated seismic hazard curves and shows that
 the 2015 curve forecasts a smaller seismic hazard than the 2006 curve for most
-spectral accelerations. For most hazard levels the implies the 2015 curve predicts
-a smaller peak ground acceleration (PGA) and $Sa$(10Hz) values than the 2006 curve.
+spectral accelerations.
 
 !media media/examples/Seismic_Hazard.png
        style=width:100%;margin-right:0px;float:center;
@@ -43,8 +42,8 @@ a smaller peak ground acceleration (PGA) and $Sa$(10Hz) values than the 2006 cur
 ### Seismic fragility
 
 Seismic fragility here refers to the probability of collapse of the GNF under
-seismic shaking. It is assumed that the spectral acceleration at 10Hz is a
-representative seismic demand for the GNF and the seismic fragility (as well as
+seismic shaking. It is assumed that the spectral acceleration ($Sa$) at 10Hz is a
+representative seismic demand for the GNF and therefore, the seismic fragility (as well as
 the seismic hazard) is expressed in terms of $Sa$ at 10Hz. The fragility curve
 and its uncertainty are expressed using a double lognormal distribution described
 by the lognormal median (Am), and logarithmic standard deviations representing randomness
@@ -58,10 +57,39 @@ is calculated as:
 P\big(collapse|Sa(10Hz)) = \Phi \Big(\frac{ln\big(Sa(10Hz)/A_m\big)}{\beta_C}\Big)
 \end{equation}
 
-where, $\beta_C$ is the composite logarithmic standard deviation calculated as $\sqrt{\beta_R^2 + \beta_U^2}$
-and $\Phi$ is the standard normal cumulative distribution function.
+where, $\beta_C$ is the composite logarithmic standard deviation calculated as
+$\sqrt{\beta_R^2 + \beta_U^2}$ and $\Phi$ is the standard normal cumulative
+distribution function.
 
-### Event and fault trees for risk evaluation
+Note that the seismic fragilities also were updated in 2015 and therefore the
+seismic fragilities for the 2006 assessment and the 2015 assessment are different.
+The structural collapse seismic fragility for the 2006 and 2015 hazard are listed
+in [table-fragilities] below. These fragilities are also plotted in [fig:fra1]
+and [fig:fra2] below.
+
+!table id=table-fragilities caption=Structural collapse fragilities for GNF.
+| Year of assessment | $A_m$ | $\beta_R$ |$\beta_U$ |$\beta_C$ |
+| - | - | - | - | - |
+| 2006 | 1.31 | 0.24 | 0.38 | 0.45 |
+| 2015 | 2.11 | 0.29 | 0.41 | 0.50 |
+
+!row!
+
+!col! small=12 medium=6 large=6
+!media media/examples/Fragility_2006.png
+       style=width:100% id=fig:fra1
+       caption=Mean, median, 5th, and 95th percentile fragility functions for the 2006 assessment.
+!col-end!
+
+!col! small=12 medium=6 large=6
+!media media/examples/Fragility_2015.png
+       style=width:100% id=fig:fra2
+       caption=Mean, median, 5th and 95th percentile fragility functions for the 2015 assessment.
+!col-end!
+
+!row-end!
+
+### Event tree and fault tree for risk evaluation
 
 The seismic failure case of the GNF can be expressed as a simple fault tree with
 a single basic event, which is the collapse of the structure from a seismic event.
@@ -79,132 +107,131 @@ the GNF used in this example are presented in [fig:ET] and [fig:FT], respectivel
        id=fig:FT
        caption=Fault tree used for aggregating the seismic risk for both the 2006 and the 2015 assessments.
 
-## Inputs to the MASTODON FTA python module
+## Inputs to the MASTODON FTA Python module
 
 Seismic risk assessment of the GNF is performed separately for the two seismic
 hazard curves. The seismic risk is calculated by splitting the hazard curve into
 a number of bins, and calculating the risk of collapse for each bin. In this
 example, both the seismic hazard curves in [fig:SH] are split into 10 bins. The
 spectral acceleration corresponding to each bin is calculated as the geometric
-mean of the spectral accelerations of the extents of the bin.
+mean of the spectral accelerations of the extents of the bin. The corresponding
+mean annual frequency of exceedance (MAFE) for the bin is calculated through linear
+interpolation of the hazard curve in the log-log scale.
 
 The inputs required for the seismic risk assessment using the FTA python module
 include the seismic hazard curve, fault tree logic, and the seismic fragilities
-of the basic events. The FTA module is currently limited to fault tree analyses,
+of the basic events. The MASTODON FTA module is currently limited to fault tree analyses,
 and not event tree analyses. Since the event tree in this example comprises of a
 single event, event tree analysis will not be required. The seismic hazard,
 fault tree logic, and basic event fragilities can be either input directly as
 python lists, or as csv files. For this example, they are provided as csv files.
-The seismic hazard files are listed below. As seen in the files, the seismic
-hazard is simply specified as pairs of intensity measure and the corresponding
-mean annual frequency of exceedance.
+The seismic hazard input file for the 2006 hazard is listed below. As seen in
+the file, the seismic hazard is simply specified as pairs of intensity measure
+and the corresponding MAFE.
 
 !listing examples/ex08/seismic_hazard_2006.csv
 
-!listing examples/ex08/seismic_hazard_2015.csv
+The fault tree analysis in the FTA module cannot be performed with a single basic
+event, which is the case for this example. Therefore, a dummy basic event with a
+point estimate probability of 1.0 is included in the fault tree logic along with
+an AND condition. This is logically
+equivalent to having the one basic event as shown in [fig:FT]. The fault tree
+logic input file is shown below, along with the basic event input file. The two basic
+events in the files below named `STR_COLLAPSE` and `DUMMY`, correspond to the
+collapse of the structure and the dummy event, respectively. `TE` in the logic
+file denotes the top event for which, the probability of failure is being
+calculated. Note that the structural collapse fragility is expressed as a
+lognormal distribution (indicated by `LNORM` in the basic events file) with the
+median and composite logarithmic standard deviation as described before. The
+basic event fragility input files for the 2006 assessment is listed below.
 
+!listing examples/ex08/logic.csv
 
+!listing examples/ex08/bas_events_2006.csv
+
+The analysis is performed in Python by simply creating an instance of the FaultTree
+class in the FTA module. For example, the assessment for the 2006 hazard is
+performed by the code below.
+
+```
+from mastodonutils import FTA
+quant2006 = FTA.Quantification("gnf_2006",
+                           logic='logic.csv',
+                           basic_events='bas_events_2006.csv',
+                           analysis='Fragility',
+                           hazard='seismic_hazard_2006.csv',
+                           IM=[0.04, 0.11, 0.21, 0.42, 0.64, 0.87, 1.09, 1.52, 3.26, 4.34, 6.51],
+                           lite=True,
+                           nbins=10,
+                           write_output=True)
+```
+
+In this code, note that the logic, basic event fragilities, and the seismic hazard
+are provided using the input parameters, `logic`, `basic_events`, and `hazard`,
+respectively. The `IM` parameter inputs the intensity bins in the hazard curve.
+In this case, since a list of intensities is provided, MASTODON will assume that
+they correspond to the extents of the intensity bins. Since 11 intensities are
+provided here, MASTODON uses these values to divide the hazard curve into 10 bins,
+and the `nbins` parameter is ignored. The `lite` option ensures that Approach 2 is
+used to calculated the risk. Details of this approach can be found in the
+documentation in the `FTA.py` file. The `write_output` option ensures that the
+results are saved in csv format.
 
 ## Results
 
-As per the DOE order 420.1C, a 10 year re-evaluation of the seismic hazard at an
-INL facility was conducted. Consequently, a re-evaluation of the seismic collapse
-capacity of this facility was also made. This section presents and discusses the
-seismic hazard, facility collapse fragility, and risk results.
+The results calculated from the code above will be saved as csv files in the
+folder, `gnf_2006_results/approach_2/`. Since the `lite` version of the analysis
+is performed, the results from Approach 1 are not calculated. The results file
+for the analysis in this example is listed below.
 
+!listing examples/ex08/gnf_2006_results/approach_2/results.csv
 
+The columns names in the results file indicate the following:
 
-### Facility collapse fragility function
+- `bin#`: bin number
+- `im`: intensity measure ($Sa$ at 10Hz in this case).
+- `mafe`: MAFE for the bin.
+- `top_failure_prob`: failure probability of top event, i.e., the top event
+   fragility. In this case, the collapse probability of the structure given
+   an input ground $Sa$ at 10Hz.
+- `delta_mafe`: mean annual frequency of occurrence of the intensity measures
+    of the bin. This is calculated as the difference between the MAFE values of the
+    extents of bin.
+- `bin_risk`: risk corresponding to this bin and is calculated as the
+    product of `top_failure_prob` and `delta_mafe`. In this case, it is the collapse
+    frequency for the bin. The summation of this value across all the bins provides the total
+    risk.
 
-As discussed previously, the fragility function is dependent on the median acceleration
-capacity $(A_m)$ and the resultant standard deviation $(\beta_T)$. These parameters
-are obtained from the separation-of-variables method presented in EPRI TR-103959
-[!citep](EPRI2018). In this method, $A_m$ is expressed as:
+The collapse fragility calculated from the fault tree analysis is convolved with
+the hazard curve to calculate the final risk of collapse of the facility. In the
+MASTODON FTA module, the final risk is stored in the `toprisk_2' class variable and
+can be printed as follows:
 
-\begin{equation}
-\label{eq3}
-A_m = F_C~F_{RS}~Sa_{REF}
-\end{equation}
+```
+print quant2006.toprisk_2
+```
 
-\noindent where, $F_C$ is the median capacity factor, $F_{RS}$ is the median structural
-response factor, and $Sa_{REF}$ is the ground motion parameter for the reference
-earthquake. The median capacity factor is dependent on the median elastic strength
-capacity and the median inelastic energy absorption of the facility. The median
-structural response factor depends on several attributes such as:
+The final collapse risk for the 2006 and the 2015 assessments calculated using
+MASTODON are listed in [table-risks] below.
 
-- Earthquake response spectrum shape
-- Horizontal component peak response to account for the possibility that the response spectrum in one horizontal direction may be higher than the response spectrum in the other direction
-- Vertical component response to account for the variability in vertical ground response spectrum
-- Peak and valley variability
-- Structure damping
-- Structure frequency
-- Structure mode shape
-- Structure mode combination
-- Time history simulation to account for any differences between the response spectra for the time histories and the intended target spectra
-- Soil structure interaction
-- Ground motion incoherence to account for differences in ground motion amplitudes at all the points under the structure foundation
-- Earthquake component combination to account for the combination of structural responses due to the three components of ground motion input
+!table id=table-risks caption=Structural collapse risks for GNF calculated using MASTODON.
+| Year of assessment| Risk of collapse |
+| - | - |
+| 2006 | 5.27e-05 |
+| 2015 | 5.20e-06 |
 
-The resultant standard deviation is computed by accounting for the standard deviations
-in the capacity and the structural response factors:
+Note that the collapse risk calculated using the updated seismic hazard and
+fragilities in 2015 is almost an order of magnitude smaller than those calculated
+in 2006. The collapse frequencies for each bin calculated using MASTODON for the
+2006 and 2015 assessment are plotted in [fig:Risk] below. Note that the collapse
+frequencies in each bin are also smaller in the 2015 assessment, except for the last
+bin where the collapse frequencies for the two assessments are almost equal.
 
-\begin{equation}
-\label{eq4}
-\beta_T = \sqrt{\beta_{R,C}^2 + \beta_{R,RS}^2 + \beta_{U,C}^2 + \beta_{U,RS}^2}
-\end{equation}
-
-where, $\beta_{R,C}$ and $\beta_{R,RS}$ represent the randomness in the capacity
-and the structural response, respectively, and $\beta_{U,C}$ and $\beta_{U,RS}$
-represent the uncertainty in the capacity and the structural response, respectively.
-
-!row!
-
-!col! small=12 medium=6 large=6
-!media media/examples/Fragility_2006.png
-       style=width:100% id=fig:fra1
-       caption=Mean, median, and 5-95 percentile fragility functions for the 2006 assessment.
-!col-end!
-
-!col! small=12 medium=6 large=6
-!media media/examples/Fragility_2015.png
-       style=width:100% id=fig:fra2
-       caption=Mean, median, and 5-95 percentile fragility functions for the 2015 assessment.
-!col-end!
-
-!row-end!
-
-[fig:fra1] and [fig:fra2] present the facility collapse fragility functions for
-the 2006 and the 2015 seismic risk evaluations. For illustration, the mean and the
-median functions, and the $5^{th}-95^{th}$ percentile functions around the median
-are presented. While the mean function considers both the randomness and uncertainty
-around $A_m$, the median and the $5^{th}-95^{th}$ consider only the randomness around
-$A_m$. Peak Ground Acceleration is used as the ground motion parameter. It is noted
-that for the 2015 evaluation, the collapse capacity of facility increases when compared
-with the 2006 evaluation. This increment in capacity can be attributed to several
-factors. First, as noted previously, the seismic hazard has reduced from 2006 to 2015
-for most frequencies of exceedance ([fig:SH]), which results in a design response
-spectrum with lower amplitudes, and therefore, the selected ground motions for structural
-response analysis. Second, the concrete masonry unit walls of the facility have been
-strengthened post 2006. Third, a structural re-evaluation of the facility was performed
-in 2015. These three factors have contributed to the lower facility collapse probability
-in 2015 than in 2006.      
-
-### Risk assessment
-
-The seismic hazard curve and the facility fragility function are combined using the
-fault tree of [fig:FT] to compute the risk of collapse. Both the aggregated
-risk across all the ground motion levels and the conditional risk given a ground motion
-level can be computed. Figure [fig:Risk] presents the conditional risk in terms of
-the collapse frequency. Because the seismic hazard at the site and the vulnerability
-reduced in 2015, the collapse risk also reduced in 2015 for most $Sa(10Hz)$ levels.
-However, at extremely large $Sa(10Hz)$ values, since the seismic hazard increased
-in 2015, the risk has also slightly increased. In 2006 and 2015 the aggregated facility
-collapse risk is $4.461e-05$ and $1.671e-06$, respectively.
-
-!media media/examples/Risk_PGA.png
+!media media/examples/ex08_collapse_frequencies.png
        style=width:100%;margin-right:0px;float:center;
        id=fig:Risk
-       caption=Conditional risk curves and the corresponding bin values for the 2006 and the 2015 assessments.
+       caption=Collapse frequencies for the 2006 and 2015 seismic risk
+               assessments of GNF calculated using MASTODON.
 
 
 !bibtex bibliography
