@@ -556,7 +556,7 @@ class Quantification(object):
                 self.__nbins = len(IM) - 1
                 from numpy import sqrt
                 for i in range(0, len(self.__im)):
-                    self.__im[i] = sqrt(IM[i] * IM[i+1]) # geomean
+                    self.__im[i] = sqrt(IM[i] * IM[i+1]) # mean in log scale
 
             # Interpolating/Exterpolating hazard curve based on Intensity Measure bin values
             self.__haz_freq, self.__haz_freq_deltas = self.__hazInterp(self.__hazard, self.__im, self.__imextents)
@@ -565,21 +565,41 @@ class Quantification(object):
             self.__bnodes_frag = self.__BEprob(self.__bas_events, self.__antype, self.__logic.nodes,
                                                self.__im, self.__nsamp, self.__uc, self.__seed)
 
-            # Top event fragility (lognormal parameters and plot)
-            self.__topfragility, self.__ln = self.__TOPfragility(
+            # Top event fragility using the exact calculation (minmax approach)
+            # topfragility_exact contains the fragility values vs IM
+            # ln contains lognormal fit parameters: median and beta
+            self.__topfrag_exact_2, self.__ln = self.__TOPfragility(
                 self.__Min_max, self.__mcsets, self.__MCprob,
                 self.__lnparameters, self.__im)
 
             # Calculating top event risk using approach 2
-            self.__bins_top_risk_2 = [x*y for x, y in zip(self.__topfragility, self.__haz_freq_deltas)]
-            self.__bins_top_risk_2_mod = [x*y for x, y in zip(self.__topfragility, self.__haz_freq)]
-            self.__top_risk_2 = [sum(self.__bins_top_risk_2)]
+            self.__bins_toprisk_exact_2 = [x*y for x, y in zip(self.__topfrag_exact_2, self.__haz_freq_deltas)]
+            self.__toprisk_exact_2 = [sum(self.__bins_toprisk_exact_2)]
+
+            # Risk analysis using approach 2, but going cutset by cutset
+            # Using rare event approximation (sum of probabilites)
+            # This will help calculate risk contribution of each cutset
+            # Below is the list of lists of minimal cutset probabilities
+            self.__mc_prob = self.__MCprob(self.__mcsets)
+            self.__topfrag_rare_2 = [sum(i) for i in zip(*self.__mc_prob)]
+            self.__bins_toprisk_rare_2 = [x*y for x, y in zip(self.__topfrag_rare_2, self.__haz_freq_deltas)]
+            self.__toprisk_rare_2 = [sum(self.__bins_toprisk_rare_2)]
+            self.__mcset_risks = []
+            self.__mcset_contributions = []
+            for prob in self.__mc_prob:
+                risks = [x*y for x, y in zip(prob, self.__haz_freq_deltas)]
+                self.__mcset_risks.append(sum(risks))
+                self.__mcset_contributions.append(sum(risks) / self.__toprisk_rare_2[0] * 100)
 
             # Writing the results from approach 2
             if self.__write_output:
                 self.__approach_2_results(self.__name, self.__im, self.__haz_freq,
-                                          self.__topfragility, self.__haz_freq_deltas,
-                                          self.__bins_top_risk_2)
+                                          self.__topfrag_exact_2, self.__topfrag_rare_2,
+                                          self.__haz_freq_deltas,
+                                          self.__bins_toprisk_exact_2, self.__bins_toprisk_rare_2,
+                                          self.__mcsets, self.__mcset_risks, self.__mcset_contributions,
+                                          self.__toprisk_exact_2,
+                                          self.__toprisk_rare_2)
 
             if not (self.__lite):
                 # dictionary of basic events risk (convolving fragility and hazard)
@@ -599,9 +619,8 @@ class Quantification(object):
             raise ValueError("The analysis type should be either `fragility` or `risk`.")
 
         if not self.__lite:
-            # list of lists of minimal cutset probabilities
+            # Below is the list of lists of minimal cutset probabilities
             self.__mc_prob = self.__MCprob(self.__mcsets)
-
             # top event risk using approach 1
             # 1. Rare event approximation
             self.__top_rare = [sum(i) for i in zip(*self.__mc_prob)]
@@ -708,12 +727,12 @@ class Quantification(object):
         """Return the bin IM, bin hazard, bin fragility, bin hazard delta, and
            the top risk for each bin (haz delta * fragility) that was used to
            calculate the TOP event risk using approach 2"""
-        return (self.__im, self.__haz_freq, self.__topfragility, self.__haz_freq_deltas, self.__bins_top_risk_2, self.__bins_top_risk_2_mod)
+        return (self.__im, self.__haz_freq, self.__topfrag_exact_2, self.__haz_freq_deltas, self.__bins_toprisk_exact_2)
 
     @property
     def toprisk_2(self):
         """Return TOP event Risk using approach 2"""
-        return self.__top_risk_2
+        return self.__toprisk_exact_2
 
     @property
     def be_im_ratio(self):
@@ -788,6 +807,16 @@ class Quantification(object):
         for i in range(0, len(mc_prob)):
             im.append([100*x/y for x, y in zip(mc_prob[i], top_ub)])
         return im
+
+    #################### Rare event approximation #####################
+    @staticmethod
+    def __Rare_event(cutsets, mcprob):
+        """
+        Function to calculate the probability of the TOP event
+        using the rare event approximation (sum)
+        """
+        probs = mcprob(cutsets)
+        return [sum(i) for i in zip(*probs)]
 
     ################## Exact probability calculation ##################
     @staticmethod
@@ -1123,7 +1152,11 @@ class Quantification(object):
         return data
 
     @staticmethod
-    def __approach_2_results(name, im, haz_freq, topfragility, haz_freq_deltas, bins_top_risk_2):
+    def __approach_2_results(name, im, haz_freq, topfrag_exact, topfrag_rare, haz_freq_deltas,
+                             bins_toprisk_exact, bins_toprisk_rare,
+                             mcsets, mcset_risks, mcset_contributions,
+                             toprisk_exact,
+                             toprisk_rare):
         """
         Function for writing approach 2 results in csv format
         """
@@ -1135,14 +1168,27 @@ class Quantification(object):
         # Writing results into a csv file
         import csv
         dirname = name + '_results/approach_2/'
-        with open(dirname+'results.csv', 'w') as f1:
+        # writing bin results
+        with open(dirname+'bin_results.csv', 'w') as f1:
             writer = csv.writer(f1, delimiter=',', lineterminator='\n',)
             writer.writerow(['bin#', 'im', 'mafe', 'top_failure_prob',
                               'delta_mafe', 'bin_risk'])
             for i, a in enumerate(im):
-                writer.writerow([i+1, im[i], haz_freq[i], topfragility[i],
-                                 haz_freq_deltas[i], bins_top_risk_2[i]])
-
+                writer.writerow([i+1, im[i], haz_freq[i],
+                                 topfrag_exact[i], topfrag_rare[i],
+                                 haz_freq_deltas[i],
+                                 bins_toprisk_exact[i], bins_toprisk_rare[i]])
+        # writing cutset results
+        with open(dirname+'cutset_results.csv', 'w') as f2:
+            writer = csv.writer(f2, delimiter=',', lineterminator='\n',)
+            writer.writerow(['mcset', 'risk', 'contribution(%)'])
+            for i in range(0, len(mcsets)):
+                writer.writerow([str(list(mcsets[i])), mcset_risks[i], mcset_contributions[i]])
+        # writing risk results
+        with open(dirname+'risk_results.csv', 'w') as f3:
+            writer = csv.writer(f3, delimiter=',', lineterminator='\n',)
+            writer.writerow(['Top risk (exact calculation)', 'Top risk (rare event approximation)'])
+            writer.writerow([toprisk_exact[0], toprisk_rare[0]])
 
     @staticmethod
     def __approach_1_results(name, top_upper_bound, mcsets, mc_prob, mc_im, top_cal, bas_events, count,
