@@ -1171,8 +1171,10 @@ class Quantification(object):
         # writing bin results
         with open(dirname+'bin_results.csv', 'w') as f1:
             writer = csv.writer(f1, delimiter=',', lineterminator='\n',)
-            writer.writerow(['bin#', 'im', 'mafe', 'top_failure_prob',
-                              'delta_mafe', 'bin_risk'])
+            writer.writerow(['bin#', 'im', 'mafe',
+                             'top_failure_prob_exact','top_failure_prob_rare',
+                              'delta_mafe',
+                              'bin_risk_exact', 'bin_risk_rare'])
             for i, a in enumerate(im):
                 writer.writerow([i+1, im[i], haz_freq[i],
                                  topfrag_exact[i], topfrag_rare[i],
@@ -1180,10 +1182,12 @@ class Quantification(object):
                                  bins_toprisk_exact[i], bins_toprisk_rare[i]])
         # writing cutset results
         with open(dirname+'cutset_results.csv', 'w') as f2:
-            writer = csv.writer(f2, delimiter=',', lineterminator='\n',)
+            writer = csv.writer(f2, quoting=csv.QUOTE_NONNUMERIC, delimiter=',', lineterminator='\n',)
             writer.writerow(['mcset', 'risk', 'contribution(%)'])
             for i in range(0, len(mcsets)):
-                writer.writerow([str(list(mcsets[i])), mcset_risks[i], mcset_contributions[i]])
+                # joining all all event names in the cutset with ampersand
+                set_string = " & ".join([event.name for event in mcsets[i]])
+                writer.writerow([set_string, mcset_risks[i], mcset_contributions[i]])
         # writing risk results
         with open(dirname+'risk_results.csv', 'w') as f3:
             writer = csv.writer(f3, delimiter=',', lineterminator='\n',)
@@ -1206,11 +1210,13 @@ class Quantification(object):
         import csv
         dirname = name + '_results/approach_1/'
         with open(dirname+'cutsets.csv', 'w') as f1:
-            writer = csv.writer(f1, delimiter=',', lineterminator='\n',)
+            writer = csv.writer(f1, quoting=csv.QUOTE_NONNUMERIC, delimiter=',', lineterminator='\n',)
             writer.writerows([['Cut Sets', 'Prob/Freq', 'IM (%)'],
                               ['Total', top_upper_bound[0], '100']])
             for i in range(0, len(mcsets)):
-                writer.writerow([str(list(mcsets[i])), mc_prob[i][0],
+                # joining all all event names in the cutset with ampersand
+                set_string = " & ".join([event.name for event in mcsets[i]])
+                writer.writerow([set_string, mc_prob[i][0],
                                  mc_im[i][0]])
 
         with open(dirname+'top_event.csv', 'w') as f2:
