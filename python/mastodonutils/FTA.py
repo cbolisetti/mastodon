@@ -732,7 +732,7 @@ class Quantification(object):
     @property
     def toprisk_2(self):
         """Return TOP event Risk using approach 2"""
-        return self.__toprisk_exact_2
+        return (self.__toprisk_exact_2[0], self.__toprisk_rare_2[0])
 
     @property
     def be_im_ratio(self):
