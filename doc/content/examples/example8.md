@@ -2,6 +2,9 @@
 
 ## Model description
 
+!alert warning title=+Python2 only+
+This example will only run on Python2 and will NOT run on Python3.
+
 This example demonstrates the seismic risk assessment of a generic nuclear facility (GNF) located at the
 INL site and subject to the INL site seismic hazard. The risk analysis is performed using the MASTODON's
 FTA Python module that performs fault tree analysis and calculates the seismic risk.
@@ -38,7 +41,7 @@ the 2015 curve forecasts a smaller seismic hazard than the 2006 curve for most
 spectral accelerations.
 
 !media media/examples/ex08/Seismic_Hazard.png
-       style=width:100%;margin-right:0px;float:center;
+       style=width:80%;margin-right:auto;margin-left:auto
        id=fig:SH
        caption=Seismic hazard curves and the corresponding bin values for the 2006 and the 2015 assessments.
 
@@ -80,13 +83,15 @@ and [fig:fra2] below.
 
 !col! small=12 medium=6 large=6
 !media media/examples/ex08/Fragility_2006.png
-       style=width:100% id=fig:fra1
+       style=width:100%;margin-right:auto;margin-left:auto
+       id=fig:fra1
        caption=Mean, median, 5th, and 95th percentile fragility functions for the 2006 assessment.
 !col-end!
 
 !col! small=12 medium=6 large=6
 !media media/examples/ex08/Fragility_2015.png
-       style=width:100% id=fig:fra2
+       style=width:100%;margin-right:auto;margin-left:auto
+       id=fig:fra2
        caption=Mean, median, 5th and 95th percentile fragility functions for the 2015 assessment.
 !col-end!
 
@@ -105,12 +110,12 @@ can also be expressed using a single event, where the collapse of
 the structure leads to a breach in containment.
 
 !media media/examples/ex08/ET.png
-       style=width:80%;margin-right:0px;float:center;
+       style=width:80%;margin-right:auto;margin-left:auto
        id=fig:ET
        caption=Event tree for each bin of the seismic hazard curve for both the 2006 and the 2015 assessments. The logic of the event trees across the bins is the same except for the initiating event.
 
 !media media/examples/ex08/FT.png
-       style=width:80%;margin-right:0px;float:center;
+       style=width:80%;margin-right:auto;margin-left:auto
        id=fig:FT
        caption=Fault tree used for aggregating the seismic risk for both the 2006 and the 2015 assessments.
 
@@ -229,7 +234,7 @@ frequencies in each bin are also smaller in the 2015 assessment, except for the 
 bin where the collapse frequencies for the two assessments are almost equal.
 
 !media media/examples/ex08/collapse_frequencies.png
-       style=width:100%;margin-right:0px;float:center;
+       style=width:100%;margin-right:auto;margin-left:auto
        id=fig:Risk
        caption=Collapse frequencies for the 2006 and 2015 seismic risk
                assessments of GNF calculated using MASTODON.
