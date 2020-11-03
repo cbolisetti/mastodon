@@ -160,18 +160,7 @@ The analysis is performed in Python by simply creating an instance of the FaultT
 class in the FTA module. For example, the assessment for the 2006 hazard is
 performed by the code below.
 
-```
-from mastodonutils import FTA
-quant2006 = FTA.Quantification("gnf_2006",
-                           logic='logic.csv',
-                           basic_events='bas_events_2006.csv',
-                           analysis='Fragility',
-                           hazard='seismic_hazard_2006.csv',
-                           IM=[0.04, 0.11, 0.21, 0.42, 0.64, 0.87, 1.09, 1.52, 3.26, 4.34, 6.51],
-                           lite=True,
-                           nbins=10,
-                           write_output=True)
-```
+!listing examples/ex08/ex08.py
 
 In this code, note that the logic, basic event fragilities, and the seismic hazard
 are provided using the input parameters, `logic`, `basic_events`, and `hazard`,
