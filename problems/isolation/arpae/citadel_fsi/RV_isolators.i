@@ -12,9 +12,6 @@
   [../]
 []
 
-[GlobalParams]
-[]
-
 [Variables]
   [./p]
    block = 2
@@ -109,24 +106,6 @@
     order = FIRST
     family = LAGRANGE
   [../]
-  [./reaction_x]
-    block = '4 5'
-  [../]
-  [./reaction_y]
-    block = 4
-  [../]
-  [./reaction_z]
-    block = 4
-  [../]
-  [./reaction_xx]
-    block = 4
-  [../]
-  [./reaction_yy]
-    block = 4
-  [../]
-  [./reaction_zz]
-    block = 4
-  [../]
 []
 
 [Modules/TensorMechanics/LineElementMaster]
@@ -144,9 +123,9 @@
     # beta = 0.25 # Newmark time integration parameter
     # gamma = 0.5 # Newmark time integration parameter
 
-    beta = 0.3025
-    gamma = 0.6
-    alpha = -0.1
+    beta = 0.275625
+    gamma = 0.55
+    alpha = -0.05
 
     # beta = 0.3025
     # gamma = 0.6
@@ -170,30 +149,45 @@
     variable = 'p'
     block = 2
   [../]
-  [./inertia]
-    type = AcousticInertia
-    variable = p
-    block = 2
-  [../]
+  # [./inertia]
+  #   type = AcousticInertia
+  #   variable = p
+  #   block = 2
+  # [../]
   [./DynamicTensorMechanics]
     displacements = 'disp_x disp_y disp_z'
     block = '1 3'
-    alpha = -0.1
+    alpha = -0.05
   [../]
-  [./inertia_x1]
+  [./inertia_x]
     type = InertialForce
     variable = disp_x
     block = '1 3'
+    velocity = vel_x
+    acceleration = accel_x
+    beta = 0.275625
+    gamma = 0.55
+    alpha = -0.05
   [../]
-  [./inertia_y1]
+  [./inertia_y]
     type = InertialForce
     variable = disp_y
     block = '1 3'
+    velocity = vel_y
+    acceleration = accel_y
+    beta = 0.275625
+    gamma = 0.55
+    alpha = -0.05
   [../]
-  [./inertia_z1]
+  [./inertia_z]
     type = InertialForce
     variable = disp_z
     block = '1 3'
+    velocity = vel_z
+    acceleration = accel_z
+    beta = 0.275625
+    gamma = 0.55
+    alpha = -0.05
   [../]
   [./lr_disp_x]
     block = 4
@@ -202,7 +196,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 0
     variable = disp_x
-    save_in = reaction_x
   [../]
   [./lr_disp_y]
     block = 4
@@ -211,7 +204,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 1
     variable = disp_y
-    save_in = reaction_y
   [../]
   [./lr_disp_z]
     block = 4
@@ -220,7 +212,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 2
     variable = disp_z
-    save_in = reaction_z
   [../]
   [./lr_rot_x]
     block = 4
@@ -229,7 +220,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 3
     variable = rot_x
-    save_in = reaction_xx
   [../]
   [./lr_rot_y]
     block = 4
@@ -238,7 +228,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 4
     variable = rot_y
-    save_in = reaction_yy
   [../]
   [./lr_rot_z]
     block = 4
@@ -247,7 +236,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 5
     variable = rot_z
-    save_in = reaction_zz
   [../]
 []
 
@@ -271,114 +259,125 @@
     block = 2
   [../]
   [./accel_x]
-    type = TestNewmarkTI
-    displacement = disp_x
+    type = NewmarkAccelAux
     variable = accel_x
-    first = false
+    displacement = disp_x
+    velocity = vel_x
+    beta = 0.275625
     block = '1 3 4'
   [../]
   [./vel_x]
-    type = TestNewmarkTI
-    displacement = disp_x
+    type = NewmarkVelAux
     variable = vel_x
+    acceleration = accel_x
+    gamma = 0.55
     block = '1 3 4'
   [../]
   [./accel_y]
-    type = TestNewmarkTI
-    displacement = disp_y
+    type = NewmarkAccelAux
     variable = accel_y
-    first = false
+    displacement = disp_y
+    velocity = vel_y
+    beta = 0.275625
     block = '1 3 4'
   [../]
   [./vel_y]
-    type = TestNewmarkTI
-    displacement = disp_y
+    type = NewmarkVelAux
     variable = vel_y
+    acceleration = accel_y
+    gamma = 0.55
     block = '1 3 4'
   [../]
   [./accel_z]
-    type = TestNewmarkTI
-    displacement = disp_z
+    type = NewmarkAccelAux
     variable = accel_z
-    first = false
+    displacement = disp_z
+    velocity = vel_z
+    beta = 0.275625
     block = '1 3 4'
   [../]
   [./vel_z]
-    type = TestNewmarkTI
-    displacement = disp_z
+    type = NewmarkVelAux
     variable = vel_z
+    acceleration = accel_z
+    gamma = 0.55
     block = '1 3 4'
   [../]
   [./rot_accel_x]
     block = 4
-    type = TestNewmarkTI
+    type = NewmarkAccelAux
     displacement = rot_x
     variable = rot_accel_x
-    first = false
+    velocity = rot_vel_x
+    beta = 0.275625
   [../]
   [./rot_vel_x]
     block = 4
-    type = TestNewmarkTI
-    displacement = rot_x
+    type = NewmarkVelAux
     variable = rot_vel_x
+    acceleration = rot_accel_x
+    gamma = 0.55
   [../]
   [./rot_accel_y]
     block = 4
-    type = TestNewmarkTI
+    type = NewmarkAccelAux
     displacement = rot_y
     variable = rot_accel_y
-    first = false
+    velocity = rot_vel_y
+    beta = 0.275625
   [../]
   [./rot_vel_y]
     block = 4
-    type = TestNewmarkTI
-    displacement = rot_y
+    type = NewmarkVelAux
     variable = rot_vel_y
+    acceleration = rot_accel_y
+    gamma = 0.55
   [../]
   [./rot_accel_z]
     block = 4
-    type = TestNewmarkTI
+    type = NewmarkAccelAux
     displacement = rot_z
     variable = rot_accel_z
-    first = false
+    velocity = rot_vel_z
+    beta = 0.275625
   [../]
   [./rot_vel_z]
     block = 4
-    type = TestNewmarkTI
-    displacement = rot_z
+    type = NewmarkVelAux
     variable = rot_vel_z
+    acceleration = rot_accel_z
+    gamma = 0.55
   [../]
 []
 
 [InterfaceKernels]
-  [./interface1]
-    type = FSI_test
-    variable = disp_x
-    neighbor_var = p
-    boundary = 'Interface'
-    D = 1e-6
-    component = 0
-  [../]
-  [./interface2]
-    type = FSI_test
-    variable = disp_y
-    neighbor_var = p
-    boundary = 'Interface'
-    D = 1e-6
-    component = 1
-  [../]
-  [./interface3]
-    type = FSI_test
-    variable = disp_z
-    neighbor_var = p
-    boundary = 'Interface'
-    D = 1e-6
-    component = 2
-  [../]
+  # [./interface1]
+  #   type = StructureAcousticInterface
+  #   variable = disp_x
+  #   neighbor_var = p
+  #   boundary = 'Interface'
+  #   D = 1e-6
+  #   component = 0
+  # [../]
+  # [./interface2]
+  #   type = StructureAcousticInterface
+  #   variable = disp_y
+  #   neighbor_var = p
+  #   boundary = 'Interface'
+  #   D = 1e-6
+  #   component = 1
+  # [../]
+  # [./interface3]
+  #   type = StructureAcousticInterface
+  #   variable = disp_z
+  #   neighbor_var = p
+  #   boundary = 'Interface'
+  #   D = 1e-6
+  #   component = 2
+  # [../]
 []
 
 [BCs]
-  # !!!!!!!!!!!TODO: constrain rotations of rigid beams
   # [./fixrx0]
   #   type = DirichletBC
   #   variable = rot_x
@@ -449,12 +448,12 @@
     boundary = 'IsoBottom'
     value = 0.0
   [../]
-  [./free]
-    type = FluidFreeSurfaceBC
-    variable = p
-    boundary = 'Fluid_top'
-    alpha = '0.1'
-  []
+  # [./free]
+  #   type = FluidFreeSurfaceBC
+  #   variable = p
+  #   boundary = 'Fluid_top'
+  #   alpha = '0.1'
+  # []
   [./disp_top]
     type = DirichletBC
     variable = disp_y
@@ -481,12 +480,12 @@
     ts = 0.25
     scale_factor = 4.905
   []
-  [accel_bottom]
-    type = PiecewiseLinear
-    data_file = Sine_0_5Hz0.csv
-    format = 'columns'
-    scale_factor = 0.1 # 4.905
-  []
+  # [accel_bottom]
+  #   type = PiecewiseLinear
+  #   data_file = Sine_0_5Hz0.csv
+  #   format = 'columns'
+  #   scale_factor = 0.1 # 4.905
+  # []
 []
 
 [Materials]
@@ -540,10 +539,10 @@
     diffusivity = 4.4e-6
     conductivity = 18
     a = 100
-    r_eff = 2.2352
+    r_eff = 0.25
     r_contact = 0.2
     uy = 0.001
-    unit = 9
+    unit = 4
     beta = 0.3025
     gamma = 0.6
     # beta = 0.3025
@@ -590,22 +589,24 @@
   end_time = 0.5 # 0.5
   timestep_tolerance = 1e-6
   automatic_scaling = true
-  [TimeIntegrator]
-    type = NewmarkBeta
-    beta = 0.3025
-    gamma = 0.6
+[]
+
+[Controls]
+  [inertia_switch]
+    type = TimePeriod
+    start_time = 0.0
+    end_time = 0.015
+    disable_objects = '*/inertia_x */inertia_y */inertia_z
+                       */vel_x */vel_y */vel_z
+                       */rot_vel_x */rot_vel_y */rot_vel_z
+                       */accel_x */accel_y */accel_z
+                       */rot_accel_x */rot_accel_y */rot_accel_z'
+    set_sync_times = true
+    execute_on = 'timestep_begin timestep_end'
   []
 []
 
 [Postprocessors]
-  [./Iso1_Bot_ReacX]
-    # type = NodalVariableValue
-    # nodeid = 3982
-    # variable = reaction_x
-    type = PointValue
-    point = '0.0 -3.1 4.66125'
-    variable = reaction_x
-  [../]
   [./Iso1_Bot_DispX]
     # type = NodalVariableValue
     # nodeid = 3982
@@ -613,14 +614,6 @@
     type = PointValue
     point = '0.0 -3.1 4.66125'
     variable = disp_x
-  [../]
-  [./Iso1_Top_ReacX]
-    # type = NodalVariableValue
-    # nodeid = 3334
-    # variable = reaction_x
-    type = PointValue
-    point = '0.0 -3.1 4.98125'
-    variable = reaction_x
   [../]
   [./Iso1_Top_DispX]
     # type = NodalVariableValue
@@ -694,7 +687,6 @@
     end_frequency = 1000
     outputs = out1
   [../]
-
   [./accel_hist_z]
     type = ResponseHistoryBuilder
     variables = 'accel_z'

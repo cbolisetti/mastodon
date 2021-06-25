@@ -12,9 +12,6 @@
   [../]
 []
 
-[GlobalParams]
-[]
-
 [Variables]
   [./p]
    block = 2
@@ -109,24 +106,6 @@
     order = FIRST
     family = LAGRANGE
   [../]
-  [./reaction_x]
-    block = '4 5'
-  [../]
-  [./reaction_y]
-    block = 4
-  [../]
-  [./reaction_z]
-    block = 4
-  [../]
-  [./reaction_xx]
-    block = 4
-  [../]
-  [./reaction_yy]
-    block = 4
-  [../]
-  [./reaction_zz]
-    block = 4
-  [../]
 []
 
 [Modules/TensorMechanics/LineElementMaster]
@@ -144,9 +123,9 @@
     # beta = 0.25 # Newmark time integration parameter
     # gamma = 0.5 # Newmark time integration parameter
 
-    beta = 0.3025
-    gamma = 0.6
-    alpha = -0.1
+    beta = 0.276
+    gamma = 0.45
+    alpha = -0.05
 
     # beta = 0.3025
     # gamma = 0.6
@@ -202,7 +181,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 0
     variable = disp_x
-    save_in = reaction_x
   [../]
   [./lr_disp_y]
     block = 4
@@ -211,7 +189,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 1
     variable = disp_y
-    save_in = reaction_y
   [../]
   [./lr_disp_z]
     block = 4
@@ -220,7 +197,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 2
     variable = disp_z
-    save_in = reaction_z
   [../]
   [./lr_rot_x]
     block = 4
@@ -229,7 +205,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 3
     variable = rot_x
-    save_in = reaction_xx
   [../]
   [./lr_rot_y]
     block = 4
@@ -238,7 +213,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 4
     variable = rot_y
-    save_in = reaction_yy
   [../]
   [./lr_rot_z]
     block = 4
@@ -247,7 +221,6 @@
     rotations = 'rot_x rot_y rot_z'
     component = 5
     variable = rot_z
-    save_in = reaction_zz
   [../]
 []
 
@@ -378,7 +351,6 @@
 []
 
 [BCs]
-  # !!!!!!!!!!!TODO: constrain rotations of rigid beams
   # [./fixrx0]
   #   type = DirichletBC
   #   variable = rot_x
@@ -540,7 +512,7 @@
     diffusivity = 4.4e-6
     conductivity = 18
     a = 100
-    r_eff = 2.2352
+    r_eff = 0.25
     r_contact = 0.2
     uy = 0.001
     unit = 9
