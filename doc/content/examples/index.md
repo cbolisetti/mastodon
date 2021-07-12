@@ -21,5 +21,6 @@ A list of example simulations using MASTODON is provided below. These examples i
 - [Example 10b](examples/example10b.md): Cantilever example demonstrating central difference time integration using HEX20 elements.
 - [Example 11a](examples/example11a.md): Cantilever example demonstrating mesh requirements for accuracy in bending of static and dynamic simulations.
 - [Example 11b](examples/example11b.md): Mesh refinement using `Marker` and `Indicator`, and demonstration of `SidesetMoment` and `AverageValue` postprocessors
+- [Example 14](examples/example14.md): Seismic analysis of a base-isolated nucclear power plant building.
 
 !bibtex bibliography
