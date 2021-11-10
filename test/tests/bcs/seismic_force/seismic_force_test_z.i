@@ -209,9 +209,9 @@
       beta = 0.25
       gamma = 0.5
       boundary = 'back'
-      shear_wave_speed = 3718.204815052883833
-      p_wave_speed = 7381.527628151251754
-      density = 4.9419e-3
+      # shear_wave_speed = 3718.204815052883833
+      # p_wave_speed = 7381.527628151251754
+      # density = 4.9419e-3
     [../]
   [../]
   [./Periodic]
